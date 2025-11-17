@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useProductStore } from "../stores/productStore"
 import { useCategoryStore } from "../stores/categoryStore"
 import { useCustomerStore } from "../stores/customerStore"
@@ -18,7 +18,9 @@ const Sales = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const { fetchCategories } = useCategoryStore()
   const { initializeStore: initializeCustomerStore } = useCustomerStore()
+  const { cart } = useSalesStore()
   const searchInputRef = useRef(null)
+  const cartUpdateCallbackRef = useRef(null)
 
   const isInitialized = useRef(false)
 
@@ -60,9 +62,19 @@ const Sales = () => {
     }
   }, [fetchCategories, initializeCustomerStore])
 
+  useEffect(() => {
+    if (cartUpdateCallbackRef.current) {
+      cartUpdateCallbackRef.current()
+    }
+  }, [cart])
+
   const handleSearchChange = (term) => {
     setSearchTerm(term)
   }
+
+  const handleProductAdded = useCallback((callback) => {
+    cartUpdateCallbackRef.current = callback
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -109,7 +121,8 @@ const Sales = () => {
             <ProductSearch 
               ref={searchInputRef}
               onSearchChange={handleSearchChange} 
-              searchTerm={searchTerm} 
+              searchTerm={searchTerm}
+              onProductAdded={handleProductAdded}
             />
           </div>
 
