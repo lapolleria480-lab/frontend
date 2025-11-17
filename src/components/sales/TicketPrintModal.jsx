@@ -4,6 +4,7 @@ import { useToast } from "@/contexts/ToastContext"
 import Button from "@/components/common/Button"
 import LoadingButton from "@/components/common/LoandingButton"
 import ticketPrintService from "@/services/ticketPrintService"
+import escposFrontendService from "@/services/escposService"
 import {
   XMarkIcon,
   PrinterIcon,
@@ -17,34 +18,81 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
   const { showToast } = useToast()
   const [printing, setPrinting] = useState(false)
   const [copies, setCopies] = useState(1)
+  const [useEscpos, setUseEscpos] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
-      // Cargar configuraciones si no están disponibles
       if (!businessConfig?.business_name) {
         fetchBusinessConfig()
       }
       if (!ticketConfig?.enable_print) {
         fetchTicketConfig()
       }
-      
-      // Establecer número de copias desde la configuración
       setCopies(ticketConfig?.copies_count || 1)
+      const escposEnabled = localStorage.getItem('escposEnabled') === 'true'
+      setUseEscpos(escposEnabled)
     }
   }, [isOpen, businessConfig, ticketConfig])
 
   if (!isOpen) return null
 
-  const handlePrint = async () => {
+  const handlePrintEscpos = async () => {
     setPrinting(true)
     try {
-      // Configurar el servicio de impresión
+      const printMethod = localStorage.getItem('printMethod') || 'preview'
+      
+      for (let i = 0; i < copies; i++) {
+        const escposCommands = await escposFrontendService.generateEscposCommands(
+          saleData.sale.id,
+          businessConfig,
+          ticketConfig
+        )
+
+        let result
+        switch (printMethod) {
+          case 'bluetooth':
+            result = await escposFrontendService.printViaBluetooth(escposCommands)
+            break
+          case 'serial':
+            result = await escposFrontendService.printViaSerialPort(escposCommands)
+            break
+          case 'local':
+            result = await escposFrontendService.printViaLocalServer(escposCommands)
+            break
+          default:
+            result = await escposFrontendService.printViaPreview(escposCommands)
+        }
+
+        if (i < copies - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
+      }
+
+      showToast(
+        copies > 1 ? `Se imprimieron ${copies} copias correctamente` : "El ticket se imprimió correctamente",
+        "success"
+      )
+      onClose()
+    } catch (error) {
+      console.error("Error al imprimir ESC/POS:", error)
+      showToast(error.message || "No se pudo imprimir el ticket", "error")
+    } finally {
+      setPrinting(false)
+    }
+  }
+
+  const handlePrint = async () => {
+    if (useEscpos) {
+      return handlePrintEscpos()
+    }
+
+    setPrinting(true)
+    try {
       ticketPrintService.configure(
         ticketConfig.printer_name,
         ticketConfig.paper_width
       )
 
-      // Imprimir el número de copias configurado
       for (let i = 0; i < copies; i++) {
         const result = await ticketPrintService.printTicket(
           saleData,
@@ -56,7 +104,6 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
           throw new Error(result.error)
         }
 
-        // Pequeña pausa entre copias
         if (i < copies - 1) {
           await new Promise(resolve => setTimeout(resolve, 500))
         }
@@ -116,7 +163,6 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
     onClose()
   }
 
-  // Verificar si la impresión está habilitada
   if (!ticketConfig?.enable_print) {
     return null
   }
