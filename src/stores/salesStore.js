@@ -25,6 +25,9 @@ export const useSalesStore = create((set, get) => ({
   showQuantityModal: false,
   selectedProduct: null,
 
+  showTicketPrintModal: false,
+  lastCompletedSale: null,
+
   // Historial de ventas con paginación
   sales: [],
   loading: false,
@@ -58,6 +61,9 @@ export const useSalesStore = create((set, get) => ({
   // NUEVO: Acciones para modal de cantidad
   setShowQuantityModal: (show) => set({ showQuantityModal: show }),
   setSelectedProduct: (product) => set({ selectedProduct: product }),
+
+  setShowTicketPrintModal: (show) => set({ showTicketPrintModal: show }),
+  setLastCompletedSale: (sale) => set({ lastCompletedSale: sale }),
 
   // Función para abrir modal de cantidad con producto
   openQuantityModal: (product) => {
@@ -341,10 +347,6 @@ export const useSalesStore = create((set, get) => ({
     })
   },
 
-  setShowPaymentModal: (show) => {
-    set({ showPaymentModal: show })
-  },
-
   // CORREGIDO: Procesar venta con validación de caja abierta
   processSale: async (paymentData) => {
     const state = get()
@@ -411,8 +413,6 @@ export const useSalesStore = create((set, get) => ({
           product_id: item.id,
           quantity: item.quantity,
           unit_price: item.price,
-          // Pass the exact total price for the item if it was amount-based for kg products
-          // This ensures the backend receives the correct amount for the line item
           total_price: item.totalPrice, 
           unit_type: item.unit_type,
         })),
@@ -451,6 +451,7 @@ export const useSalesStore = create((set, get) => ({
           sales: [sale, ...state.sales],
           currentSale: sale,
           loading: false,
+          lastCompletedSale: { sale, items: sale.items || [] },
         }))
 
         // Actualizar stock local de productos
@@ -458,7 +459,6 @@ export const useSalesStore = create((set, get) => ({
         state.cart.forEach((item) => {
           const product = productStore.getProductById(item.id)
           if (product) {
-            // The stock is updated correctly regardless of the unit type
             productStore.updateStock(item.id, product.stock - item.quantity)
           }
         })

@@ -5,12 +5,16 @@ import { useAuth } from "@/contexts/AuthContext"
 import Card from "@/components/common/Card"
 import LoadingButton from "../components/common/LoandingButton"
 import { useToast } from "@/contexts/ToastContext"
+import BusinessConfigTab from "@/components/config/BusinessConfigTab"
+import TicketConfigTab from "@/components/config/TicketConfigTab"
 import {
   UserCircleIcon,
   KeyIcon,
   Cog6ToothIcon,
   EyeIcon,
   EyeSlashIcon,
+  BuildingStorefrontIcon,
+  ReceiptPercentIcon,
 } from "@heroicons/react/24/outline"
 
 const Configuration = () => {
@@ -127,6 +131,8 @@ const Configuration = () => {
   const tabs = [
     { id: "profile", name: "Mi Perfil", icon: UserCircleIcon },
     { id: "password", name: "Cambiar Contraseña", icon: KeyIcon },
+    { id: "business", name: "Datos del Negocio", icon: BuildingStorefrontIcon },
+    { id: "tickets", name: "Configuración de Tickets", icon: ReceiptPercentIcon },
     { id: "settings", name: "Configuración", icon: Cog6ToothIcon },
   ]
 
@@ -338,6 +344,10 @@ const Configuration = () => {
             </Card.Body>
           </Card>
         )}
+
+        {activeTab === "business" && <BusinessConfigTab />}
+
+        {activeTab === "tickets" && <TicketConfigTab />}
 
         {activeTab === "settings" && (
           <Card>

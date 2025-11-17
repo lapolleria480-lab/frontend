@@ -1,10 +1,48 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import configService from "@/services/configService"
 
 export const useConfigStore = create(
   persist(
     (set, get) => ({
-      // Configuración de la empresa
+      businessConfig: {
+        business_name: "Mi Negocio",
+        business_address: "",
+        business_phone: "",
+        business_email: "",
+        business_cuit: "",
+        business_website: "",
+        business_logo: null,
+        business_slogan: "",
+        business_footer_message: "Gracias por su compra. Vuelva pronto!"
+      },
+
+      ticketConfig: {
+        enable_print: true,
+        auto_print: false,
+        printer_name: "",
+        paper_width: 80,
+        show_logo: true,
+        show_business_info: true,
+        show_cuit: true,
+        show_barcode: false,
+        show_qr: false,
+        font_size: "normal",
+        print_duplicate: false,
+        copies_count: 1,
+        header_message: "",
+        footer_message: "Gracias por su compra",
+        return_policy: "",
+        show_cashier: true,
+        show_customer: true,
+        show_payment_method: true,
+        show_change: true,
+        fiscal_type: "TICKET",
+        show_tax_breakdown: true,
+        include_cae: false
+      },
+
+      // Configuración de la empresa (mantener para compatibilidad)
       companyInfo: {
         name: "Mi Empresa",
         address: "Dirección de la empresa",
@@ -138,9 +176,111 @@ export const useConfigStore = create(
         categories: { enabled: true, features: ["colors", "icons", "hierarchy"] },
       },
 
-      // Estado de carga
       loading: false,
       error: null,
+
+      fetchBusinessConfig: async () => {
+        set({ loading: true, error: null })
+        try {
+          const response = await configService.getBusinessConfig()
+          if (response.data.success) {
+            set({ 
+              businessConfig: response.data.data,
+              loading: false 
+            })
+            return response.data.data
+          }
+        } catch (error) {
+          console.error("Error fetching business config:", error)
+          set({ 
+            error: error.response?.data?.message || "Error al cargar configuración del negocio",
+            loading: false 
+          })
+        }
+      },
+
+      updateBusinessConfig: async (config) => {
+        set({ loading: true, error: null })
+        try {
+          const response = await configService.updateBusinessConfig(config)
+          if (response.data.success) {
+            set({ 
+              businessConfig: response.data.data,
+              loading: false 
+            })
+            return { success: true, data: response.data.data }
+          }
+        } catch (error) {
+          console.error("Error updating business config:", error)
+          set({ 
+            error: error.response?.data?.message || "Error al actualizar configuración del negocio",
+            loading: false 
+          })
+          return { success: false, error: error.response?.data?.message }
+        }
+      },
+
+      fetchTicketConfig: async () => {
+        set({ loading: true, error: null })
+        try {
+          const response = await configService.getTicketConfig()
+          if (response.data.success) {
+            set({ 
+              ticketConfig: response.data.data,
+              loading: false 
+            })
+            return response.data.data
+          }
+        } catch (error) {
+          console.error("Error fetching ticket config:", error)
+          set({ 
+            error: error.response?.data?.message || "Error al cargar configuración de tickets",
+            loading: false 
+          })
+        }
+      },
+
+      updateTicketConfig: async (config) => {
+        set({ loading: true, error: null })
+        try {
+          const response = await configService.updateTicketConfig(config)
+          if (response.data.success) {
+            set({ 
+              ticketConfig: response.data.data,
+              loading: false 
+            })
+            return { success: true, data: response.data.data }
+          }
+        } catch (error) {
+          console.error("Error updating ticket config:", error)
+          set({ 
+            error: error.response?.data?.message || "Error al actualizar configuración de tickets",
+            loading: false 
+          })
+          return { success: false, error: error.response?.data?.message }
+        }
+      },
+
+      fetchAllConfig: async () => {
+        set({ loading: true, error: null })
+        try {
+          const response = await configService.getAllConfig()
+          if (response.data.success) {
+            set({ 
+              businessConfig: response.data.data.business || get().businessConfig,
+              ticketConfig: response.data.data.ticket || get().ticketConfig,
+              loading: false 
+            })
+            return response.data.data
+          }
+        } catch (error) {
+          console.error("Error fetching all config:", error)
+          set({ 
+            error: error.response?.data?.message || "Error al cargar configuración",
+            loading: false 
+          })
+        }
+      },
 
       // Acciones
       updateCompanyInfo: (info) => {
@@ -247,6 +387,8 @@ export const useConfigStore = create(
           securityConfig: state.securityConfig,
           moduleConfig: state.moduleConfig,
           roles: state.roles,
+          businessConfig: state.businessConfig,
+          ticketConfig: state.ticketConfig,
           exportDate: new Date().toISOString(),
         }
         return JSON.stringify(config, null, 2)
@@ -290,6 +432,8 @@ export const useConfigStore = create(
     {
       name: "config-storage",
       partialize: (state) => ({
+        businessConfig: state.businessConfig,
+        ticketConfig: state.ticketConfig,
         companyInfo: state.companyInfo,
         systemConfig: state.systemConfig,
         printConfig: state.printConfig,
