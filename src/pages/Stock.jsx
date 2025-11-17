@@ -107,7 +107,17 @@ const Stock = () => {
     return () => clearTimeout(timeoutId)
   }, [searchQuery, filters, fetchProducts])
 
-
+  useEffect(() => {
+    const handleOpenModalEvent = () => {
+      handleOpenProductForm()
+    }
+    
+    window.addEventListener("openProductModal", handleOpenModalEvent)
+    
+    return () => {
+      window.removeEventListener("openProductModal", handleOpenModalEvent)
+    }
+  }, [handleOpenProductForm])
 
   // Función para manejar cambio de página
   const handlePageChange = useCallback((newPage) => {
