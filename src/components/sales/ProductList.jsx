@@ -14,10 +14,9 @@ import {
   ShoppingCartIcon,
 } from "@heroicons/react/24/outline"
 
-const ProductList = ({ searchTerm }) => {
+const ProductList = ({ searchTerm, selectedIndex = -1 }) => {
   const [sortField, setSortField] = useState("total_sold")
   const [sortDirection, setSortDirection] = useState("desc")
-  const [selectedIndex, setSelectedIndex] = useState(-1)
 
   const { searchResults, searchPagination, searchProductsForSales, loadMoreSearchResults, loading } = useProductStore()
   const { categories } = useCategoryStore()
@@ -28,7 +27,6 @@ const ProductList = ({ searchTerm }) => {
 
     const handleSearch = async () => {
       if (isMounted) {
-        // Solo buscar si hay 2 o más caracteres
         if (searchTerm && searchTerm.trim().length >= 2) {
           await searchProductsForSales(searchTerm, 1, false)
         }
@@ -46,15 +44,9 @@ const ProductList = ({ searchTerm }) => {
     return searchResults.filter((product) => product.active)
   }, [searchResults])
 
-  useEffect(() => {
-    setSelectedIndex(window.selectedProductIndexForSearch || -1)
-  }, [window.selectedProductIndexForSearch])
-
-  // Filtrar, buscar y ordenar productos
   const filteredProducts = useMemo(() => {
     const result = [...displayProducts]
 
-    // Ordenar resultados
     result.sort((a, b) => {
       let aValue, bValue
 
@@ -101,7 +93,6 @@ const ProductList = ({ searchTerm }) => {
     return cartItem ? cartItem.quantity : 0
   }
 
-  // Manejar ordenamiento
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc")
@@ -111,7 +102,6 @@ const ProductList = ({ searchTerm }) => {
     }
   }
 
-  // Componente para el header de ordenamiento
   const SortHeader = ({ field, children, className = "" }) => (
     <th
       className={`px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors ${className}`}
@@ -155,7 +145,6 @@ const ProductList = ({ searchTerm }) => {
         </div>
       )}
 
-      {/* Tabla de productos optimizada */}
       {searchTerm && searchTerm.trim().length >= 2 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
@@ -199,10 +188,8 @@ const ProductList = ({ searchTerm }) => {
                           : `Clic para agregar ${product.unit_type === "kg" ? "cantidad personalizada" : "1 unidad"} al carrito`
                       }
                     >
-                      {/* Producto con imagen, nombre, descripción y carrito */}
                       <td className="px-3 py-4 min-w-0">
                         <div className="flex items-center space-x-3">
-                          {/* Imagen */}
                           <div className="h-12 w-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
                             {product.image ? (
                               <img
@@ -215,11 +202,9 @@ const ProductList = ({ searchTerm }) => {
                             )}
                           </div>
 
-                          {/* Información del producto */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
                               <div className="text-sm font-medium text-gray-900 truncate flex-1">{product.name}</div>
-                              {/* Badge de carrito minimalista */}
                               {cartQuantity > 0 && (
                                 <div className="flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium flex-shrink-0">
                                   <ShoppingCartIcon className="h-3 w-3 mr-1" />
@@ -228,14 +213,12 @@ const ProductList = ({ searchTerm }) => {
                               )}
                             </div>
 
-                            {/* Descripción con tooltip */}
                             {product.description && (
                               <div className="text-sm text-gray-500 truncate cursor-help" title={product.description}>
                                 {product.description}
                               </div>
                             )}
 
-                            {/* Código de barras */}
                             {product.barcode && (
                               <div
                                 className="text-xs text-gray-400 font-mono truncate"
@@ -248,14 +231,12 @@ const ProductList = ({ searchTerm }) => {
                         </div>
                       </td>
 
-                      {/* Categoría */}
                       <td className="px-3 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 truncate max-w-full">
                           {category?.name || "Sin categoría"}
                         </span>
                       </td>
 
-                      {/* Precio */}
                       <td className="px-3 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {formatCurrency(product.price)}
@@ -266,7 +247,6 @@ const ProductList = ({ searchTerm }) => {
                         )}
                       </td>
 
-                      {/* Stock */}
                       <td className="px-3 py-4 whitespace-nowrap">
                         <div className="flex flex-col">
                           <span
@@ -318,7 +298,6 @@ const ProductList = ({ searchTerm }) => {
         </div>
       )}
 
-      {/* Mensaje cuando no hay productos */}
       {displayProducts.length === 0 && !loading && searchTerm && searchTerm.trim().length >= 2 && (
         <div className="text-center py-16">
           <MagnifyingGlassIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -329,7 +308,6 @@ const ProductList = ({ searchTerm }) => {
         </div>
       )}
 
-      {/* Indicador de carga inicial */}
       {loading && displayProducts.length === 0 && searchTerm && searchTerm.trim().length >= 2 && (
         <div className="text-center py-16">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
@@ -337,7 +315,6 @@ const ProductList = ({ searchTerm }) => {
         </div>
       )}
 
-      {/* Resumen */}
       {displayProducts.length > 0 && (
         <div className="text-sm text-gray-500 text-center py-4 border-t border-gray-100">
           Mostrando {displayProducts.length} de {searchPagination.total} productos para "{searchTerm}"

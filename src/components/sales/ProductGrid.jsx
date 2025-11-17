@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useEffect, useState } from "react"
+import { useMemo, useEffect } from "react"
 import { useProductStore } from "../../stores/productStore"
 import { useCategoryStore } from "../../stores/categoryStore"
 import { useSalesStore } from "../../stores/salesStore"
@@ -8,19 +8,17 @@ import { formatCurrency, formatStock } from "../../lib/formatters"
 import Button from "../common/Button"
 import { PlusIcon, MagnifyingGlassIcon, PhotoIcon, ShoppingCartIcon } from "@heroicons/react/24/outline"
 
-const ProductGrid = ({ searchTerm }) => {
+const ProductGrid = ({ searchTerm, selectedIndex = -1 }) => {
   const { searchResults, searchPagination, searchProductsForSales, loadMoreSearchResults, loading } =
     useProductStore()
   const { categories } = useCategoryStore()
   const { setSelectedProduct, setShowQuantityModal, cart } = useSalesStore()
-  const [selectedIndex, setSelectedIndex] = useState(-1)
 
   useEffect(() => {
     let isMounted = true
 
     const handleSearch = async () => {
       if (isMounted) {
-        // Solo buscar si hay 2 o más caracteres
         if (searchTerm && searchTerm.trim().length >= 2) {
           await searchProductsForSales(searchTerm, 1, false)
         }
@@ -37,10 +35,6 @@ const ProductGrid = ({ searchTerm }) => {
   const displayProducts = useMemo(() => {
     return searchResults.filter((product) => product.active)
   }, [searchResults])
-
-  useEffect(() => {
-    setSelectedIndex(window.selectedProductIndexForSearch || -1)
-  }, [window.selectedProductIndexForSearch])
 
   const handleAddToCart = (product) => {
     if (product.stock > 0) {
@@ -84,7 +78,6 @@ const ProductGrid = ({ searchTerm }) => {
         </div>
       )}
 
-      {/* Grid de productos - solo mostrar si hay búsqueda válida */}
       {searchTerm && searchTerm.trim().length >= 2 && (
         <>
           <div className="grid grid-cols-3 gap-4">

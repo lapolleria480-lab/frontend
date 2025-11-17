@@ -16,6 +16,8 @@ import { Squares2X2Icon, ListBulletIcon } from "@heroicons/react/24/outline"
 const Sales = () => {
   const [viewMode, setViewMode] = useState("list")
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedProductIndex, setSelectedProductIndex] = useState(-1)
+  
   const { fetchCategories } = useCategoryStore()
   const { initializeStore: initializeCustomerStore } = useCustomerStore()
   const { cart } = useSalesStore()
@@ -76,6 +78,10 @@ const Sales = () => {
     cartUpdateCallbackRef.current = callback
   }, [])
 
+  const handleSelectedIndexChange = useCallback((index) => {
+    setSelectedProductIndex(index)
+  }, [])
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -112,27 +118,27 @@ const Sales = () => {
         </div>
       </div>
 
-      {/* Layout principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Columna izquierda - Productos */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Buscador */}
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <ProductSearch 
               ref={searchInputRef}
               onSearchChange={handleSearchChange} 
               searchTerm={searchTerm}
               onProductAdded={handleProductAdded}
+              onSelectedIndexChange={handleSelectedIndexChange}
             />
           </div>
 
-          {/* Grid/Lista de productos */}
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            {viewMode === "grid" ? <ProductGrid searchTerm={searchTerm} /> : <ProductList searchTerm={searchTerm} />}
+            {viewMode === "grid" ? (
+              <ProductGrid searchTerm={searchTerm} selectedIndex={selectedProductIndex} />
+            ) : (
+              <ProductList searchTerm={searchTerm} selectedIndex={selectedProductIndex} />
+            )}
           </div>
         </div>
 
-        {/* Columna derecha - Carrito */}
         <div className="lg:col-span-1">
           <div className="sticky top-12">
             <Cart />
@@ -140,7 +146,6 @@ const Sales = () => {
         </div>
       </div>
 
-      {/* Modales */}
       <PaymentModal />
       <QuantityModal />
     </div>

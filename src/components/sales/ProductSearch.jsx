@@ -6,7 +6,7 @@ import { useSalesStore } from "../../stores/salesStore"
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts"
 import { MagnifyingGlassIcon, QrCodeIcon } from "@heroicons/react/24/outline"
 
-const ProductSearch = forwardRef(({ onSearchChange, searchTerm, onProductAdded }, ref) => {
+const ProductSearch = forwardRef(({ onSearchChange, searchTerm, onProductAdded, onSelectedIndexChange }, ref) => {
   const [isSearchingBarcode, setIsSearchingBarcode] = useState(false)
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm)
   const [selectedProductIndex, setSelectedProductIndex] = useState(-1)
@@ -42,7 +42,16 @@ const ProductSearch = forwardRef(({ onSearchChange, searchTerm, onProductAdded }
 
   useEffect(() => {
     setSelectedProductIndex(-1)
-  }, [searchResults])
+    if (onSelectedIndexChange) {
+      onSelectedIndexChange(-1)
+    }
+  }, [searchResults, onSelectedIndexChange])
+
+  useEffect(() => {
+    if (onSelectedIndexChange) {
+      onSelectedIndexChange(selectedProductIndex)
+    }
+  }, [selectedProductIndex, onSelectedIndexChange])
 
   useEffect(() => {
     const handleCartUpdate = () => {
@@ -85,6 +94,8 @@ const ProductSearch = forwardRef(({ onSearchChange, searchTerm, onProductAdded }
   }
 
   const handleKeyPress = (e) => {
+    const activeProducts = searchResults.filter((product) => product.active)
+    
     if (e.key === "Enter" && isSearchingBarcode) {
       handleBarcodeSearch()
     } else if (e.key === "Escape") {
@@ -94,24 +105,26 @@ const ProductSearch = forwardRef(({ onSearchChange, searchTerm, onProductAdded }
       setSelectedProductIndex(-1)
     } else if (e.key === "ArrowDown") {
       e.preventDefault()
-      const activeProducts = searchResults.filter((product) => product.active)
       if (activeProducts.length > 0) {
-        setSelectedProductIndex((prev) => 
-          prev < activeProducts.length - 1 ? prev + 1 : 0
-        )
+        setSelectedProductIndex((prev) => {
+          const newIndex = prev < activeProducts.length - 1 ? prev + 1 : 0
+          console.log("[v0] Arrow Down - Nuevo índice:", newIndex, "Total productos:", activeProducts.length)
+          return newIndex
+        })
       }
     } else if (e.key === "ArrowUp") {
       e.preventDefault()
-      const activeProducts = searchResults.filter((product) => product.active)
       if (activeProducts.length > 0) {
-        setSelectedProductIndex((prev) => 
-          prev > 0 ? prev - 1 : activeProducts.length - 1
-        )
+        setSelectedProductIndex((prev) => {
+          const newIndex = prev > 0 ? prev - 1 : activeProducts.length - 1
+          console.log("[v0] Arrow Up - Nuevo índice:", newIndex, "Total productos:", activeProducts.length)
+          return newIndex
+        })
       }
     } else if (e.key === "Enter" && !isSearchingBarcode && selectedProductIndex >= 0) {
       e.preventDefault()
-      const activeProducts = searchResults.filter((product) => product.active)
       const selectedProduct = activeProducts[selectedProductIndex]
+      console.log("[v0] Enter presionado - Producto seleccionado:", selectedProduct?.name)
       if (selectedProduct && selectedProduct.stock > 0) {
         setSelectedProduct(selectedProduct)
         setShowQuantityModal(true)
@@ -125,18 +138,15 @@ const ProductSearch = forwardRef(({ onSearchChange, searchTerm, onProductAdded }
       setLocalSearchTerm(value)
       setSelectedProductIndex(-1)
 
-      // Limpiar timer anterior
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
       }
 
-      // Solo aplicar debounce si hay 2 o más caracteres
       if (value.trim().length >= 2) {
         debounceTimerRef.current = setTimeout(() => {
           onSearchChange(value)
-        }, 300) // 300ms de debounce para búsqueda fluida
+        }, 300)
       } else {
-        // Si hay menos de 2 caracteres, limpiar resultados inmediatamente
         onSearchChange("")
       }
     },
@@ -158,10 +168,6 @@ const ProductSearch = forwardRef(({ onSearchChange, searchTerm, onProductAdded }
     setSelectedProductIndex(-1)
     inputRef.current?.focus()
   }
-
-  useEffect(() => {
-    window.selectedProductIndexForSearch = selectedProductIndex
-  }, [selectedProductIndex])
 
   return (
     <div className="relative">
