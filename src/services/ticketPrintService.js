@@ -39,24 +39,37 @@ class TicketPrintService {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            /* Asegurar que los colores se impriman en impresoras térmicas */
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
           }
 
           html, body {
             width: 100%;
             height: 100%;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
           }
 
           @page {
             size: ${this.paperWidth}mm auto;
-            margin: 0;
-            padding: 0;
+            margin: 0mm !important;
+            padding: 0mm !important;
           }
 
           @media print {
             @page {
               size: ${this.paperWidth}mm auto;
-              margin: 0;
-              padding: 0;
+              margin: 0mm !important;
+              padding: 0mm !important;
+            }
+            
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
             }
             
             html, body {
@@ -64,13 +77,18 @@ class TicketPrintService {
               padding: 0 !important;
               width: ${widthPx} !important;
               background: white !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
             }
             
             .ticket-container {
               margin: 0 !important;
-              padding: 0 !important;
+              padding: 2mm !important;
               width: ${widthPx} !important;
               page-break-after: avoid;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
             
             .footer {
@@ -84,47 +102,66 @@ class TicketPrintService {
             line-height: 1.3;
             width: ${widthPx};
             margin: 0 auto;
-            padding: 6px;
-            color: #000;
-            background: #fff;
+            padding: 2mm;
+            color: #000000;
+            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .ticket-container {
             width: 100%;
             margin: 0;
             padding: 0;
+            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .ticket {
             width: 100%;
             word-wrap: break-word;
             overflow-wrap: break-word;
+            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .center {
             text-align: center;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .bold {
             font-weight: bold;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .separator {
-            border-top: 1px dashed #000;
+            border-top: 1px dashed #000000;
             margin: 6px 0;
             padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .double-separator {
-            border-top: 2px solid #000;
+            border-top: 2px solid #000000;
             margin: 6px 0;
             padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .header {
             text-align: center;
             margin-bottom: 8px;
             padding: 0;
+            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .business-name {
@@ -133,12 +170,18 @@ class TicketPrintService {
             font-weight: bold;
             margin-bottom: 3px;
             line-height: 1.3;
+            color: #000000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .header-info {
             font-size: ${fontSize};
             line-height: 1.3;
             margin-bottom: 2px;
+            color: #000000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .info-line {
@@ -148,11 +191,17 @@ class TicketPrintService {
             padding: 0;
             font-size: ${fontSize};
             line-height: 1.3;
+            color: #000000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .item-row {
             margin: 4px 0;
             padding: 0;
+            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .item-name {
@@ -161,6 +210,9 @@ class TicketPrintService {
             line-height: 1.3;
             margin-bottom: 2px;
             word-wrap: break-word;
+            color: #000000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .item-details {
@@ -170,15 +222,22 @@ class TicketPrintService {
                          ticketConfig.font_size === 'large' ? '12px' : '10px'};
             line-height: 1.3;
             gap: 10px;
+            color: #000000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .item-qty {
             flex: 0 0 auto;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .item-price {
             flex: 1 1 auto;
             text-align: right;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .total-section {
@@ -187,6 +246,9 @@ class TicketPrintService {
             font-size: ${ticketConfig.font_size === 'small' ? '12px' : 
                          ticketConfig.font_size === 'large' ? '16px' : '14px'};
             line-height: 1.3;
+            color: #000000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .footer {
@@ -196,18 +258,26 @@ class TicketPrintService {
                          ticketConfig.font_size === 'large' ? '12px' : '10px'};
             line-height: 1.3;
             word-wrap: break-word;
+            color: #000000;
+            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .barcode {
             text-align: center;
             margin: 8px 0;
             padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           img {
             max-width: 100%;
             height: auto;
             display: block;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
 
           .section-title {
@@ -215,6 +285,9 @@ class TicketPrintService {
             font-size: ${fontSize};
             margin: 4px 0 2px 0;
             line-height: 1.3;
+            color: #000000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
         </style>
       </head>
@@ -467,6 +540,8 @@ class TicketPrintService {
       iframe.style.right = '-9999px'
       iframe.style.bottom = '-9999px'
       iframe.style.border = 'none'
+      iframe.style.width = '0'
+      iframe.style.height = '0'
       
       document.body.appendChild(iframe)
       
@@ -475,18 +550,17 @@ class TicketPrintService {
       doc.write(html)
       doc.close()
 
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       iframe.contentWindow.focus()
       
       const printPromise = new Promise((resolve) => {
         setTimeout(() => {
           iframe.contentWindow.print()
-          // Dar tiempo al navegador para preparar la impresión
           setTimeout(() => {
             resolve()
-          }, 500)
-        }, 50)
+          }, 1000)
+        }, 100)
       })
 
       await printPromise
