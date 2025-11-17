@@ -3,13 +3,10 @@ import { useConfigStore } from "@/stores/configStore"
 import { useToast } from "@/contexts/ToastContext"
 import Button from "@/components/common/Button"
 import LoadingButton from "@/components/common/LoandingButton"
-import ticketPrintService from "@/services/ticketPrintService"
-import escposFrontendService from "@/services/escposService"
+import api from "@/config/api"
 import {
   XMarkIcon,
   PrinterIcon,
-  EyeIcon,
-  ArrowDownTrayIcon,
   CheckCircleIcon
 } from "@heroicons/react/24/outline"
 
@@ -18,7 +15,6 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
   const { showToast } = useToast()
   const [printing, setPrinting] = useState(false)
   const [copies, setCopies] = useState(1)
-  const [useEscpos, setUseEscpos] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -29,40 +25,32 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
         fetchTicketConfig()
       }
       setCopies(ticketConfig?.copies_count || 1)
-      const escposEnabled = localStorage.getItem('escposEnabled') === 'true'
-      setUseEscpos(escposEnabled)
     }
   }, [isOpen, businessConfig, ticketConfig])
 
   if (!isOpen) return null
 
-  const handlePrintEscpos = async () => {
+  const handlePrint = async () => {
     setPrinting(true)
     try {
-      const printMethod = localStorage.getItem('printMethod') || 'preview'
+      console.log('[v0] Iniciando impresión ESC/POS...', { saleId: saleData.sale.id, copies })
       
       for (let i = 0; i < copies; i++) {
-        const escposCommands = await escposFrontendService.generateEscposCommands(
-          saleData.sale.id,
+        console.log('[v0] Imprimiendo copia', i + 1, 'de', copies)
+        
+        const response = await api.post('/ticket/print-escpos', {
+          saleId: saleData.sale.id,
           businessConfig,
           ticketConfig
-        )
+        })
 
-        let result
-        switch (printMethod) {
-          case 'bluetooth':
-            result = await escposFrontendService.printViaBluetooth(escposCommands)
-            break
-          case 'serial':
-            result = await escposFrontendService.printViaSerialPort(escposCommands)
-            break
-          case 'local':
-            result = await escposFrontendService.printViaLocalServer(escposCommands)
-            break
-          default:
-            result = await escposFrontendService.printViaPreview(escposCommands)
+        console.log('[v0] Respuesta del backend:', response.data)
+
+        if (!response.data.success) {
+          throw new Error(response.data.message || 'Error al imprimir')
         }
 
+        // Pequeña pausa entre copias
         if (i < copies - 1) {
           await new Promise(resolve => setTimeout(resolve, 500))
         }
@@ -74,93 +62,11 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
       )
       onClose()
     } catch (error) {
-      console.error("Error al imprimir ESC/POS:", error)
-      showToast(error.message || "No se pudo imprimir el ticket", "error")
+      console.error("[v0] Error al imprimir:", error)
+      showToast(error.response?.data?.message || error.message || "No se pudo imprimir el ticket", "error")
     } finally {
       setPrinting(false)
     }
-  }
-
-  const handlePrint = async () => {
-    if (useEscpos) {
-      return handlePrintEscpos()
-    }
-
-    setPrinting(true)
-    try {
-      ticketPrintService.configure(
-        ticketConfig.printer_name,
-        ticketConfig.paper_width
-      )
-
-      for (let i = 0; i < copies; i++) {
-        const result = await ticketPrintService.printTicket(
-          saleData,
-          businessConfig,
-          ticketConfig
-        )
-
-        if (!result.success) {
-          throw new Error(result.error)
-        }
-
-        if (i < copies - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500))
-        }
-      }
-
-      showToast(
-        copies > 1 ? `Se imprimieron ${copies} copias correctamente` : "El ticket se imprimió correctamente",
-        "success"
-      )
-
-      onClose()
-    } catch (error) {
-      console.error("Error al imprimir:", error)
-      showToast(error.message || "No se pudo imprimir el ticket", "error")
-    } finally {
-      setPrinting(false)
-    }
-  }
-
-  const handlePreview = () => {
-    ticketPrintService.configure(
-      ticketConfig.printer_name,
-      ticketConfig.paper_width
-    )
-
-    const result = ticketPrintService.previewTicket(
-      saleData,
-      businessConfig,
-      ticketConfig
-    )
-
-    if (!result.success) {
-      showToast(result.error || "No se pudo mostrar la vista previa", "error")
-    }
-  }
-
-  const handleDownload = () => {
-    ticketPrintService.configure(
-      ticketConfig.printer_name,
-      ticketConfig.paper_width
-    )
-
-    const result = ticketPrintService.downloadTicket(
-      saleData,
-      businessConfig,
-      ticketConfig
-    )
-
-    if (result.success) {
-      showToast("El ticket se descargó correctamente", "success")
-    } else {
-      showToast(result.error || "No se pudo descargar el ticket", "error")
-    }
-  }
-
-  const handleSkip = () => {
-    onClose()
   }
 
   if (!ticketConfig?.enable_print) {
@@ -186,7 +92,7 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
             </div>
           </div>
           <button
-            onClick={handleSkip}
+            onClick={onClose}
             className="text-gray-400 hover:text-gray-500 transition-colors"
           >
             <XMarkIcon className="h-6 w-6" />
@@ -262,31 +168,10 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
               Imprimir Ticket
             </LoadingButton>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handlePreview}
-                className="py-2 text-sm"
-              >
-                <EyeIcon className="h-4 w-4 mr-1 inline" />
-                Vista Previa
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleDownload}
-                className="py-2 text-sm"
-              >
-                <ArrowDownTrayIcon className="h-4 w-4 mr-1 inline" />
-                Descargar
-              </Button>
-            </div>
-
             <Button
               type="button"
               variant="ghost"
-              onClick={handleSkip}
+              onClick={onClose}
               className="w-full py-2"
             >
               No imprimir
