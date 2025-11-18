@@ -77,166 +77,122 @@ const SaleDetailModal = ({ isOpen, onClose, saleId, onSaleUpdated }) => {
 
     setPrinting(true)
     try {
-      console.log('[v0] Iniciando impresión desde reportes...', { saleId: sale.id, printCopies })
+      // Configurar el servicio de impresión
+      ticketPrintService.configure(
+        ticketConfig.printer_name,
+        ticketConfig.paper_width
+      )
 
+      // Preparar datos de venta en el formato esperado por el servicio
+      const saleData = {
+        sale: sale,
+        items: sale.items || []
+      }
+
+      // Imprimir el número de copias configurado
       for (let i = 0; i < printCopies; i++) {
-        console.log('[v0] Imprimiendo copia', i + 1, 'de', printCopies)
-        
-        const api = (await import('@/config/api')).default
-        const response = await api.post('/ticket/print-escpos', {
-          saleId: sale.id
-        })
+        const result = await ticketPrintService.printTicket(
+          saleData,
+          businessConfig,
+          ticketConfig
+        )
 
-        console.log('[v0] Respuesta del backend:', response.data)
-
-        if (!response.data.success) {
-          throw new Error(response.data.message || 'Error al imprimir')
+        if (!result.success) {
+          throw new Error(result.error)
         }
 
-        const method = response.data.data?.method
-        
-        if (method === 'printer') {
-          // Backend ya envió a la impresora
-          showToast('Ticket impreso correctamente en la impresora térmica', 'success')
-        } else if (method === 'preview') {
-          // No hay impresora conectada, mostrar preview
-          if (response.data.data?.commands) {
-            const previewWindow = window.open('about:blank', 'TicketPreview')
-            const htmlContent = `
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <title>Vista Previa - Ticket #${sale.id}</title>
-                <style>
-                  body { font-family: monospace; padding: 20px; background: #f5f5f5; }
-                  .ticket { 
-                    background: white; 
-                    padding: 20px; 
-                    max-width: 400px; 
-                    margin: 0 auto;
-                    white-space: pre-wrap;
-                    border: 1px solid #ccc;
-                  }
-                </style>
-              </head>
-              <body>
-                <div class="ticket" id="ticket"></div>
-                <script>
-                  const base64 = '${response.data.data.commands}';
-                  const binaryString = atob(base64);
-                  let text = '';
-                  for (let i = 0; i < binaryString.length; i++) {
-                    const code = binaryString.charCodeAt(i);
-                    if (code >= 32 && code <= 126) text += String.fromCharCode(code);
-                    else if (code === 10) text += '\\n';
-                    else if (code === 27) text += '[ESC]';
-                  }
-                  document.getElementById('ticket').textContent = text;
-                </script>
-              </body>
-              </html>
-            `
-            previewWindow.document.write(htmlContent)
-            showToast('Mostrando preview (impresora no conectada)', 'info')
-          }
-        }
-
-        // Esperar un poco entre copias
+        // Pequeña pausa entre copias
         if (i < printCopies - 1) {
           await new Promise(resolve => setTimeout(resolve, 500))
         }
       }
 
-      showToast(`${printCopies} ticket(s) procesado(s) correctamente`, 'success')
+      showToast(
+        printCopies > 1 ? `Se imprimieron ${printCopies} copias correctamente` : "El ticket se imprimió correctamente",
+        "success"
+      )
+
+      setShowPrintModal(false)
     } catch (error) {
-      console.error('[v0] Error al imprimir:', error)
-      showToast(error.message || 'Error al imprimir el ticket', 'error')
+      console.error("Error al imprimir:", error)
+      showToast(error.message || "No se pudo imprimir el ticket", "error")
     } finally {
       setPrinting(false)
     }
   }
 
-  const handlePreviewTicket = async () => {
+  const handlePreviewTicket = () => {
     if (!sale) return
 
-    try {
-      const api = (await import('@/config/api')).default
-      const response = await api.post('/ticket/print-escpos', {
-        saleId: sale.id,
-        businessConfig,
-        ticketConfig,
-        preview: true
-      })
+    ticketPrintService.configure(
+      ticketConfig.printer_name,
+      ticketConfig.paper_width
+    )
 
-      if (response.data.success) {
-        const previewWindow = window.open('about:blank', 'TicketPreview')
-        const htmlContent = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Vista Previa - Ticket #${sale.id}</title>
-            <style>
-              body { font-family: monospace; padding: 20px; background: #f5f5f5; }
-              .ticket { 
-                background: white; 
-                padding: 20px; 
-                max-width: 400px; 
-                margin: 0 auto;
-                white-space: pre-wrap;
-                border: 1px solid #ccc;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="ticket" id="ticket"></div>
-            <script>
-              const base64 = '${response.data.data.commands}';
-              const binaryString = atob(base64);
-              let text = '';
-              for (let i = 0; i < binaryString.length; i++) {
-                const code = binaryString.charCodeAt(i);
-                if (code >= 32 && code <= 126) text += String.fromCharCode(code);
-                else if (code === 10) text += '\\n';
-                else if (code === 27) text += '[ESC]';
-              }
-              document.getElementById('ticket').textContent = text;
-            </script>
-          </body>
-          </html>
-        `
-        previewWindow.document.write(htmlContent)
-      }
-    } catch (error) {
-      console.error('Error en vista previa:', error)
-      showToast("No se pudo mostrar la vista previa", "error")
+    const saleData = {
+      sale: sale,
+      items: sale.items || []
+    }
+
+    const result = ticketPrintService.previewTicket(
+      saleData,
+      businessConfig,
+      ticketConfig
+    )
+
+    if (!result.success) {
+      showToast(result.error || "No se pudo mostrar la vista previa", "error")
     }
   }
 
   const handleDownloadTicket = () => {
-    showToast("Descarga no disponible para tickets térmicos", "info")
+    if (!sale) return
+
+    ticketPrintService.configure(
+      ticketConfig.printer_name,
+      ticketConfig.paper_width
+    )
+
+    const saleData = {
+      sale: sale,
+      items: sale.items || []
+    }
+
+    const result = ticketPrintService.downloadTicket(
+      saleData,
+      businessConfig,
+      ticketConfig
+    )
+
+    if (result.success) {
+      showToast("El ticket se descargó correctamente", "success")
+    } else {
+      showToast(result.error || "No se pudo descargar el ticket", "error")
+    }
   }
 
   const handleCancelSale = async () => {
     if (!cancelReason.trim()) {
-      showToast("Debe ingresar una razón para cancelar la venta", "error")
+      showToast("Debe proporcionar una razón para cancelar la venta", "error")
       return
     }
 
     setCancelLoading(true)
     try {
-      await cancelSale(sale.id, cancelReason)
-      showToast("Venta cancelada exitosamente", "success")
+      await cancelSale(saleId, cancelReason.trim())
+      showToast("Venta cancelada correctamente", "success")
+
+      // Actualizar el estado local del modal
+      setSale({ ...sale, status: "cancelled" })
       setShowCancelConfirm(false)
       setCancelReason("")
-      
+
+      // Notificar al componente padre para que actualice la lista
       if (onSaleUpdated) {
         onSaleUpdated()
       }
-      
-      await loadSaleDetail()
     } catch (error) {
-      console.error("Error al cancelar venta:", error)
-      showToast(error.response?.data?.message || "Error al cancelar la venta", "error")
+      showToast(error.message || "Error al cancelar la venta", "error")
     } finally {
       setCancelLoading(false)
     }
@@ -267,6 +223,7 @@ const SaleDetailModal = ({ isOpen, onClose, saleId, onSaleUpdated }) => {
     return labels[method] || method
   }
 
+  // ACTUALIZADO: Función para renderizar métodos de pago múltiples
   const renderPaymentMethodsDetail = (sale) => {
     if (sale.payment_method === "multiple" && sale.payment_methods_formatted) {
       return (
@@ -326,6 +283,7 @@ const SaleDetailModal = ({ isOpen, onClose, saleId, onSaleUpdated }) => {
     if (ticketConfig?.enable_print) {
       setShowPrintModal(true)
     } else {
+      // Si no está habilitada la impresión de tickets, usar print del navegador
       window.print()
     }
   }
@@ -340,13 +298,14 @@ const SaleDetailModal = ({ isOpen, onClose, saleId, onSaleUpdated }) => {
       paymentInfo = getPaymentMethodLabel(sale.payment_method)
     }
 
-    const saleInfo = `Venta #${sale.id}
+    const saleInfo = `
+Venta #${sale.id}
 Fecha: ${formatDateTime(sale.created_at)}
 Cliente: ${sale.customer_name || "Cliente general"}
 Método de pago: ${paymentInfo}
 Total: ${formatCurrency(sale.total)}
-Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
-      .trim()
+Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
+    `.trim()
 
     navigator.clipboard.writeText(saleInfo).then(() => {
       showToast("Información copiada al portapapeles", "success")
@@ -355,6 +314,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
 
   return (
     <>
+      {/* Modal principal de detalle */}
       <Transition appear show={isOpen} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={onClose}>
           <Transition.Child
@@ -381,6 +341,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
                 leaveTo="opacity-0 scale-95"
               >
                 <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all flex flex-col max-h-[95vh]">
+                  {/* Header */}
                   <div className="flex items-center justify-between p-6 border-b border-gray-100">
                     <div className="flex items-center space-x-4">
                       <div className="flex-shrink-0">
@@ -425,6 +386,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
                     </div>
                   </div>
 
+                  {/* Content */}
                   <div className="flex-1 overflow-y-auto p-6">
                     {loadingDetail ? (
                       <div className="flex items-center justify-center py-12">
@@ -433,7 +395,9 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
                       </div>
                     ) : sale ? (
                       <div className="space-y-6">
+                        {/* Información general */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                          {/* Información de la venta */}
                           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
                             <div className="flex items-center mb-4">
                               <CheckCircleIcon className="h-6 w-6 text-blue-600 mr-3" />
@@ -457,6 +421,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
                             </div>
                           </div>
 
+                          {/* Cliente */}
                           <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
                             <div className="flex items-center mb-4">
                               <UserIcon className="h-6 w-6 text-green-600 mr-3" />
@@ -478,6 +443,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
                             )}
                           </div>
 
+                          {/* Resumen */}
                           <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-6 border border-purple-100">
                             <div className="flex items-center mb-4">
                               <CreditCardIcon className="h-6 w-6 text-purple-600 mr-3" />
@@ -510,6 +476,18 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
                           </div>
                         </div>
 
+                        {/* Métodos de pago */}
+                        <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-100">
+                          <div className="flex items-center mb-4">
+                            <CreditCardIcon className="h-6 w-6 text-orange-600 mr-3" />
+                            <h4 className="text-lg font-semibold text-orange-900">
+                              {sale.payment_method === "multiple" ? "Métodos de Pago" : "Método de Pago"}
+                            </h4>
+                          </div>
+                          {renderPaymentMethodsDetail(sale)}
+                        </div>
+
+                        {/* Productos vendidos */}
                         <div className="bg-white rounded-xl border border-gray-200">
                           <div className="px-6 py-4 border-b border-gray-200">
                             <h4 className="text-lg font-semibold text-gray-900">Productos Vendidos</h4>
@@ -586,6 +564,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
                           </div>
                         </div>
 
+                        {/* Notas */}
                         {sale.notes && (
                           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
                             <h4 className="text-lg font-semibold text-gray-900 mb-3">Notas</h4>
@@ -600,6 +579,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
                     )}
                   </div>
 
+                  {/* Footer */}
                   <div className="flex gap-3 p-6 border-t border-gray-100 bg-gray-50">
                     {sale && sale.status === "completed" && (
                       <Button
@@ -621,6 +601,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
             </div>
           </div>
 
+          {/* Modal de confirmación de cancelación */}
           <Transition appear show={showCancelConfirm} as={Fragment}>
             <Dialog as="div" className="relative z-[100]" onClose={() => setShowCancelConfirm(false)}>
               <Transition.Child
@@ -725,7 +706,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
                 enterFrom="opacity-0 scale-95"
                 enterTo="opacity-100 scale-100"
                 leave="ease-in duration-200"
-                leaveFrom="opacity-100"
+                leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
                 <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all">
@@ -745,6 +726,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
                       </p>
                     </div>
 
+                    {/* Información de la venta */}
                     <div className="bg-gray-50 rounded-lg p-4 mb-6">
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
@@ -786,6 +768,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}`
                       </div>
                     </div>
 
+                    {/* Botones de acción */}
                     <div className="space-y-3">
                       <button
                         onClick={handlePrintTicket}

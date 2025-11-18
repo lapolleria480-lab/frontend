@@ -3,10 +3,12 @@ import { useConfigStore } from "@/stores/configStore"
 import { useToast } from "@/contexts/ToastContext"
 import Button from "@/components/common/Button"
 import LoadingButton from "@/components/common/LoandingButton"
-import api from "@/config/api"
+import ticketPrintService from "@/services/ticketPrintService"
 import {
   XMarkIcon,
   PrinterIcon,
+  EyeIcon,
+  ArrowDownTrayIcon,
   CheckCircleIcon
 } from "@heroicons/react/24/outline"
 
@@ -18,12 +20,15 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
 
   useEffect(() => {
     if (isOpen) {
+      // Cargar configuraciones si no están disponibles
       if (!businessConfig?.business_name) {
         fetchBusinessConfig()
       }
       if (!ticketConfig?.enable_print) {
         fetchTicketConfig()
       }
+      
+      // Establecer número de copias desde la configuración
       setCopies(ticketConfig?.copies_count || 1)
     }
   }, [isOpen, businessConfig, ticketConfig])
@@ -33,21 +38,22 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
   const handlePrint = async () => {
     setPrinting(true)
     try {
-      console.log('[v0] Iniciando impresión ESC/POS...', { saleId: saleData.sale.id, copies })
-      
+      // Configurar el servicio de impresión
+      ticketPrintService.configure(
+        ticketConfig.printer_name,
+        ticketConfig.paper_width
+      )
+
+      // Imprimir el número de copias configurado
       for (let i = 0; i < copies; i++) {
-        console.log('[v0] Imprimiendo copia', i + 1, 'de', copies)
-        
-        const response = await api.post('/ticket/print-escpos', {
-          saleId: saleData.sale.id,
+        const result = await ticketPrintService.printTicket(
+          saleData,
           businessConfig,
           ticketConfig
-        })
+        )
 
-        console.log('[v0] Respuesta del backend:', response.data)
-
-        if (!response.data.success) {
-          throw new Error(response.data.message || 'Error al imprimir')
+        if (!result.success) {
+          throw new Error(result.error)
         }
 
         // Pequeña pausa entre copias
@@ -60,15 +66,57 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
         copies > 1 ? `Se imprimieron ${copies} copias correctamente` : "El ticket se imprimió correctamente",
         "success"
       )
+
       onClose()
     } catch (error) {
-      console.error("[v0] Error al imprimir:", error)
-      showToast(error.response?.data?.message || error.message || "No se pudo imprimir el ticket", "error")
+      console.error("Error al imprimir:", error)
+      showToast(error.message || "No se pudo imprimir el ticket", "error")
     } finally {
       setPrinting(false)
     }
   }
 
+  const handlePreview = () => {
+    ticketPrintService.configure(
+      ticketConfig.printer_name,
+      ticketConfig.paper_width
+    )
+
+    const result = ticketPrintService.previewTicket(
+      saleData,
+      businessConfig,
+      ticketConfig
+    )
+
+    if (!result.success) {
+      showToast(result.error || "No se pudo mostrar la vista previa", "error")
+    }
+  }
+
+  const handleDownload = () => {
+    ticketPrintService.configure(
+      ticketConfig.printer_name,
+      ticketConfig.paper_width
+    )
+
+    const result = ticketPrintService.downloadTicket(
+      saleData,
+      businessConfig,
+      ticketConfig
+    )
+
+    if (result.success) {
+      showToast("El ticket se descargó correctamente", "success")
+    } else {
+      showToast(result.error || "No se pudo descargar el ticket", "error")
+    }
+  }
+
+  const handleSkip = () => {
+    onClose()
+  }
+
+  // Verificar si la impresión está habilitada
   if (!ticketConfig?.enable_print) {
     return null
   }
@@ -92,7 +140,7 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleSkip}
             className="text-gray-400 hover:text-gray-500 transition-colors"
           >
             <XMarkIcon className="h-6 w-6" />
@@ -168,10 +216,31 @@ const TicketPrintModal = ({ isOpen, onClose, saleData }) => {
               Imprimir Ticket
             </LoadingButton>
 
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handlePreview}
+                className="py-2 text-sm"
+              >
+                <EyeIcon className="h-4 w-4 mr-1 inline" />
+                Vista Previa
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleDownload}
+                className="py-2 text-sm"
+              >
+                <ArrowDownTrayIcon className="h-4 w-4 mr-1 inline" />
+                Descargar
+              </Button>
+            </div>
+
             <Button
               type="button"
               variant="ghost"
-              onClick={onClose}
+              onClick={handleSkip}
               className="w-full py-2"
             >
               No imprimir

@@ -3,16 +3,12 @@ import { useConfigStore } from "@/stores/configStore"
 import { useToast } from "@/contexts/ToastContext"
 import Button from "@/components/common/Button"
 import LoadingButton from "@/components/common/LoandingButton"
-import PrinterConfigModal from "./PrinterConfigModal" // Import new PrinterConfigModal component
-import { ReceiptPercentIcon, PrinterIcon } from "@heroicons/react/24/outline"
+import { ReceiptPercentIcon } from "@heroicons/react/24/outline"
 
 const TicketConfigTab = () => {
   const { ticketConfig, updateTicketConfig, fetchTicketConfig, loading } = useConfigStore()
   const { showToast } = useToast()
   const [formData, setFormData] = useState(ticketConfig)
-  const [showPrinterModal, setShowPrinterModal] = useState(false)
-  const [selectedPrinter, setSelectedPrinter] = useState(null)
-  const [showPrinterConfigModal, setShowPrinterConfigModal] = useState(false) // Added new state for PrinterConfigModal
 
   useEffect(() => {
     fetchTicketConfig()
@@ -20,11 +16,6 @@ const TicketConfigTab = () => {
 
   useEffect(() => {
     setFormData(ticketConfig)
-    // Cargar impresora guardada del localStorage
-    const savedPrinter = localStorage.getItem('selectedPrinter')
-    if (savedPrinter) {
-      setSelectedPrinter(JSON.parse(savedPrinter))
-    }
   }, [ticketConfig])
 
   const handleChange = (e) => {
@@ -49,12 +40,6 @@ const TicketConfigTab = () => {
         title: "Error"
       })
     }
-  }
-
-  const handlePrinterSelected = (printer) => {
-    setSelectedPrinter(printer)
-    localStorage.setItem('selectedPrinter', JSON.stringify(printer))
-    showToast(`Impresora seleccionada: ${printer.name}`, 'success')
   }
 
   return (
@@ -103,44 +88,6 @@ const TicketConfigTab = () => {
                 <label htmlFor="auto_print" className="ml-2 block text-sm text-gray-700">
                   Imprimir automáticamente (sin preguntar)
                 </label>
-              </div>
-
-              <div className="border-t pt-4 mt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Impresora Térmica USB
-                  </label>
-                  {selectedPrinter && (
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                      Conectada
-                    </span>
-                  )}
-                </div>
-                
-                {selectedPrinter ? (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
-                    <p className="text-sm font-medium text-gray-900">{selectedPrinter.name}</p>
-                    <p className="text-xs text-gray-500">Tipo: {selectedPrinter.type}</p>
-                    {selectedPrinter.lastConnection && (
-                      <p className="text-xs text-gray-500">
-                        Última conexión: {new Date(selectedPrinter.lastConnection).toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 mb-3">
-                    No hay impresora configurada
-                  </p>
-                )}
-
-                <Button
-                  type="button"
-                  onClick={() => setShowPrinterConfigModal(true)} // Updated to open new modal
-                  className="w-full"
-                >
-                  <PrinterIcon className="h-4 w-4 mr-2" />
-                  {selectedPrinter ? 'Cambiar Impresora' : 'Configurar Impresora'}
-                </Button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -384,55 +331,6 @@ const TicketConfigTab = () => {
             </div>
           </div>
 
-          {/* Método de Impresión */}
-          <div>
-            <h4 className="text-md font-semibold text-gray-900 mb-4">Método de Impresión</h4>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Seleccionar método de impresión
-                </label>
-                <select
-                  name="print_method"
-                  value={formData.print_method || 'serial'}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="serial">Serial USB (XPrinter XP-58) - Recomendado</option>
-                  <option value="bluetooth">Bluetooth</option>
-                  <option value="localserver">Servidor Local (puerto 9100)</option>
-                  <option value="preview">Vista Previa Solo</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-2 space-y-1">
-                  <div>• <strong>Serial USB:</strong> Para impresoras conectadas directamente por USB</div>
-                  <div>• <strong>Bluetooth:</strong> Para impresoras inalámbricas</div>
-                  <div>• <strong>Servidor Local:</strong> Para Zebra Print Server en red (puerto 9100)</div>
-                  <div>• <strong>Vista Previa:</strong> Solo mostrar sin imprimir (útil para pruebas)</div>
-                </p>
-              </div>
-
-              {/* URL del Servidor de Impresión */}
-              {formData.print_method === 'localserver' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    URL del Servidor de Impresión
-                  </label>
-                  <input
-                    type="text"
-                    name="local_printer_url"
-                    value={formData.local_printer_url || 'http://localhost:9100'}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="http://localhost:9100"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Puerto 9100 es el estándar para Zebra Print Server
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Mensajes Personalizados */}
           <div>
             <h4 className="text-md font-semibold text-gray-900 mb-4">Mensajes Personalizados</h4>
@@ -500,16 +398,6 @@ const TicketConfigTab = () => {
           </LoadingButton>
         </div>
       </form>
-
-
-      {/* Added PrinterConfigModal component */}
-      {showPrinterConfigModal && (
-        <PrinterConfigModal
-          isOpen={showPrinterConfigModal}
-          onClose={() => setShowPrinterConfigModal(false)}
-          onPrinterSelected={handlePrinterSelected}
-        />
-      )}
     </div>
   )
 }
