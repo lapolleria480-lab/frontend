@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/contexts/ToastContext'
 import Button from '@/components/common/Button'
-import LoadingButton from '@/components/common/LoadingButton'
+import LoadingButton from '@/components/common/LoandingButton'
 import { PrinterIcon, XMarkIcon, CheckCircleIcon, ExclamationIcon } from '@heroicons/react/24/outline'
 import api from '@/config/api'
 
