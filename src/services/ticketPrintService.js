@@ -4,19 +4,176 @@ import { formatCurrency, formatDate } from "@/lib/formatters"
 class TicketPrintService {
   constructor() {
     this.printerName = null
-    this.paperWidth = 80 // 58mm o 80mm
+    this.paperWidth = 58 // 58mm por defecto para térmica
+    this.apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
   }
 
   /**
    * Configura el servicio de impresión
    */
-  configure(printerName, paperWidth = 80) {
+  configure(printerName, paperWidth = 58) {
     this.printerName = printerName
     this.paperWidth = paperWidth
   }
 
   /**
-   * Genera el HTML del ticket para impresión
+   * Genera un PDF térmico real de 58mm desde el backend
+   */
+  async generateThermalPDF(saleData, businessConfig, ticketConfig) {
+    try {
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        throw new Error('No se encontró token de autenticación')
+      }
+
+      const response = await fetch(`${this.apiUrl}/api/config/ticket/generate-pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          saleData,
+          businessConfig,
+          ticketConfig
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `Error ${response.status}: No se pudo generar el PDF`)
+      }
+
+      // Obtener el PDF como blob
+      const pdfBlob = await response.blob()
+      
+      return {
+        success: true,
+        blob: pdfBlob
+      }
+    } catch (error) {
+      console.error('Error generando PDF térmico:', error)
+      return {
+        success: false,
+        error: error.message || 'Error al generar el PDF térmico'
+      }
+    }
+  }
+
+  /**
+   * Genera el PDF térmico y lo abre automáticamente para impresión
+   */
+  async printTicket(saleData, businessConfig, ticketConfig) {
+    try {
+      // Generar PDF desde el backend
+      const result = await this.generateThermalPDF(saleData, businessConfig, ticketConfig)
+      
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      // Crear URL del blob
+      const pdfUrl = URL.createObjectURL(result.blob)
+      
+      // Abrir en nueva ventana para imprimir
+      const printWindow = window.open(pdfUrl, '_blank')
+      
+      if (!printWindow) {
+        throw new Error('No se pudo abrir la ventana de impresión. Verifique que las ventanas emergentes estén habilitadas.')
+      }
+
+      // Limpiar la URL después de un tiempo
+      setTimeout(() => {
+        URL.revokeObjectURL(pdfUrl)
+      }, 60000) // 1 minuto
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error al imprimir ticket:', error)
+      return { 
+        success: false, 
+        error: error.message || 'Error al imprimir el ticket'
+      }
+    }
+  }
+
+  /**
+   * Vista previa del ticket PDF en una nueva ventana
+   */
+  async previewTicket(saleData, businessConfig, ticketConfig) {
+    try {
+      // Generar PDF desde el backend
+      const result = await this.generateThermalPDF(saleData, businessConfig, ticketConfig)
+      
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      // Crear URL del blob
+      const pdfUrl = URL.createObjectURL(result.blob)
+      
+      // Abrir en nueva ventana
+      const previewWindow = window.open(pdfUrl, '_blank')
+      
+      if (!previewWindow) {
+        throw new Error('No se pudo abrir la ventana de vista previa. Verifique que las ventanas emergentes estén habilitadas.')
+      }
+
+      // Limpiar la URL después de un tiempo
+      setTimeout(() => {
+        URL.revokeObjectURL(pdfUrl)
+      }, 60000) // 1 minuto
+      
+      return { success: true }
+    } catch (error) {
+      console.error('Error al mostrar vista previa:', error)
+      return { 
+        success: false, 
+        error: error.message || 'Error al mostrar vista previa del ticket'
+      }
+    }
+  }
+
+  /**
+   * Descarga el ticket como PDF térmico
+   */
+  async downloadTicket(saleData, businessConfig, ticketConfig) {
+    try {
+      // Generar PDF desde el backend
+      const result = await this.generateThermalPDF(saleData, businessConfig, ticketConfig)
+      
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      // Crear URL del blob y descargarlo
+      const pdfUrl = URL.createObjectURL(result.blob)
+      const a = document.createElement('a')
+      a.href = pdfUrl
+      a.download = `ticket-${saleData.sale.id}-${Date.now()}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      
+      // Limpiar la URL
+      setTimeout(() => {
+        URL.revokeObjectURL(pdfUrl)
+      }, 1000)
+      
+      return { success: true }
+    } catch (error) {
+      console.error('Error al descargar ticket:', error)
+      return { 
+        success: false, 
+        error: error.message || 'Error al descargar el ticket'
+      }
+    }
+  }
+
+  /**
+   * Genera el HTML del ticket para impresión (DEPRECADO - solo para compatibilidad)
+   * @deprecated Usar generateThermalPDF en su lugar
    */
   generateTicketHTML(saleData, businessConfig, ticketConfig) {
     const { sale, items } = saleData
@@ -376,102 +533,6 @@ class TicketPrintService {
       multiple: 'Múltiples'
     }
     return labels[method] || method
-  }
-
-  /**
-   * Imprime el ticket usando la API de impresión del navegador
-   */
-  async printTicket(saleData, businessConfig, ticketConfig) {
-    try {
-      const html = this.generateTicketHTML(saleData, businessConfig, ticketConfig)
-      
-      // Crear un iframe oculto para la impresión
-      const iframe = document.createElement('iframe')
-      iframe.style.position = 'absolute'
-      iframe.style.width = '0'
-      iframe.style.height = '0'
-      iframe.style.border = 'none'
-      
-      document.body.appendChild(iframe)
-      
-      // Escribir el contenido en el iframe
-      const doc = iframe.contentWindow.document
-      doc.open()
-      doc.write(html)
-      doc.close()
-
-      // Esperar a que se cargue el contenido
-      await new Promise(resolve => setTimeout(resolve, 250))
-
-      // Imprimir
-      iframe.contentWindow.focus()
-      iframe.contentWindow.print()
-
-      // Limpiar después de imprimir
-      setTimeout(() => {
-        document.body.removeChild(iframe)
-      }, 1000)
-
-      return { success: true }
-    } catch (error) {
-      console.error('Error al imprimir ticket:', error)
-      return { 
-        success: false, 
-        error: error.message || 'Error al imprimir el ticket'
-      }
-    }
-  }
-
-  /**
-   * Vista previa del ticket en una nueva ventana
-   */
-  previewTicket(saleData, businessConfig, ticketConfig) {
-    try {
-      const html = this.generateTicketHTML(saleData, businessConfig, ticketConfig)
-      
-      const previewWindow = window.open('', '_blank', 'width=400,height=600')
-      if (!previewWindow) {
-        throw new Error('No se pudo abrir la ventana de vista previa. Verifique que las ventanas emergentes estén habilitadas.')
-      }
-      
-      previewWindow.document.write(html)
-      previewWindow.document.close()
-      
-      return { success: true }
-    } catch (error) {
-      console.error('Error al mostrar vista previa:', error)
-      return { 
-        success: false, 
-        error: error.message || 'Error al mostrar vista previa del ticket'
-      }
-    }
-  }
-
-  /**
-   * Descarga el ticket como HTML
-   */
-  downloadTicket(saleData, businessConfig, ticketConfig) {
-    try {
-      const html = this.generateTicketHTML(saleData, businessConfig, ticketConfig)
-      
-      const blob = new Blob([html], { type: 'text/html' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `ticket-${saleData.sale.id}-${Date.now()}.html`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      
-      return { success: true }
-    } catch (error) {
-      console.error('Error al descargar ticket:', error)
-      return { 
-        success: false, 
-        error: error.message || 'Error al descargar el ticket'
-      }
-    }
   }
 }
 
