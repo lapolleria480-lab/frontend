@@ -8,6 +8,7 @@ import { useConfigStore } from "../../stores/configStore"
 import { formatCurrency, formatDateTime, formatQuantity } from "../../lib/formatters"
 import { useToast } from "../../contexts/ToastContext"
 import ticketPrintService from "../../services/ticketPrintService"
+import { useNavigate } from "react-router-dom"
 import {
   XMarkIcon,
   UserIcon,
@@ -24,6 +25,7 @@ import {
   CubeIcon,
   EyeIcon,
   PhotoIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline"
 import LoadingSpinner from "../common/LoadingSpinner"
 import Button from "../common/Button"
@@ -32,6 +34,7 @@ const SaleDetailModal = ({ isOpen, onClose, saleId, onSaleUpdated }) => {
   const { fetchSaleById, cancelSale, loading } = useSalesStore()
   const { businessConfig, ticketConfig, fetchBusinessConfig, fetchTicketConfig } = useConfigStore()
   const { showToast } = useToast()
+  const navigate = useNavigate()
   const [sale, setSale] = useState(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
@@ -77,19 +80,16 @@ const SaleDetailModal = ({ isOpen, onClose, saleId, onSaleUpdated }) => {
 
     setPrinting(true)
     try {
-      // Configurar el servicio de impresión
       ticketPrintService.configure(
         ticketConfig.printer_name,
         ticketConfig.paper_width
       )
 
-      // Preparar datos de venta en el formato esperado por el servicio
       const saleData = {
         sale: sale,
         items: sale.items || []
       }
 
-      // Imprimir el número de copias configurado
       for (let i = 0; i < printCopies; i++) {
         const result = await ticketPrintService.printTicket(
           saleData,
@@ -101,7 +101,6 @@ const SaleDetailModal = ({ isOpen, onClose, saleId, onSaleUpdated }) => {
           throw new Error(result.error)
         }
 
-        // Pequeña pausa entre copias
         if (i < printCopies - 1) {
           await new Promise(resolve => setTimeout(resolve, 500))
         }
@@ -182,12 +181,11 @@ const SaleDetailModal = ({ isOpen, onClose, saleId, onSaleUpdated }) => {
       await cancelSale(saleId, cancelReason.trim())
       showToast("Venta cancelada correctamente", "success")
 
-      // Actualizar el estado local del modal
-      setSale({ ...sale, status: "cancelled" })
+      // Recargar los detalles de la venta para obtener la información de cancelación actualizada
+      await loadSaleDetail()
       setShowCancelConfirm(false)
       setCancelReason("")
 
-      // Notificar al componente padre para que actualice la lista
       if (onSaleUpdated) {
         onSaleUpdated()
       }
@@ -223,7 +221,6 @@ const SaleDetailModal = ({ isOpen, onClose, saleId, onSaleUpdated }) => {
     return labels[method] || method
   }
 
-  // ACTUALIZADO: Función para renderizar métodos de pago múltiples
   const renderPaymentMethodsDetail = (sale) => {
     if (sale.payment_method === "multiple" && sale.payment_methods_formatted) {
       return (
@@ -283,7 +280,6 @@ const SaleDetailModal = ({ isOpen, onClose, saleId, onSaleUpdated }) => {
     if (ticketConfig?.enable_print) {
       setShowPrintModal(true)
     } else {
-      // Si no está habilitada la impresión de tickets, usar print del navegador
       window.print()
     }
   }
@@ -312,9 +308,53 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
     })
   }
 
+  const handleRecreateSale = () => {
+    if (!sale || !sale.items) return
+
+    try {
+      const salesStore = useSalesStore.getState()
+      
+      salesStore.clearCart()
+      
+      sale.items.forEach(item => {
+        const productData = {
+          id: item.product_id,
+          name: item.product_name,
+          price: item.unit_price,
+          image: item.product_image,
+          barcode: item.product_barcode,
+          unit_type: item.unit_type || item.product_unit_type || 'unidades',
+          stock: 999999,
+        }
+        
+        const itemTotal = item.quantity * item.unit_price
+        
+        salesStore.addToCart(productData, item.quantity, itemTotal)
+      })
+      
+      if (sale.customer_id && sale.customer_name) {
+        salesStore.setCustomer({
+          id: sale.customer_id,
+          name: sale.customer_name,
+          email: sale.customer_email,
+          phone: sale.customer_phone,
+          document_number: sale.customer_document,
+        })
+      }
+      
+      onClose()
+      
+      navigate('/sales')
+      
+      showToast(`Venta #${sale.id} cargada en el carrito. Puedes modificarla antes de procesarla.`, "success")
+    } catch (error) {
+      console.error("Error al recrear venta:", error)
+      showToast("Error al cargar la venta en el carrito", "error")
+    }
+  }
+
   return (
     <>
-      {/* Modal principal de detalle */}
       <Transition appear show={isOpen} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={onClose}>
           <Transition.Child
@@ -341,7 +381,6 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
                 leaveTo="opacity-0 scale-95"
               >
                 <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all flex flex-col max-h-[95vh]">
-                  {/* Header */}
                   <div className="flex items-center justify-between p-6 border-b border-gray-100">
                     <div className="flex items-center space-x-4">
                       <div className="flex-shrink-0">
@@ -386,7 +425,6 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
                     </div>
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 overflow-y-auto p-6">
                     {loadingDetail ? (
                       <div className="flex items-center justify-center py-12">
@@ -395,9 +433,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
                       </div>
                     ) : sale ? (
                       <div className="space-y-6">
-                        {/* Información general */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                          {/* Información de la venta */}
                           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
                             <div className="flex items-center mb-4">
                               <CheckCircleIcon className="h-6 w-6 text-blue-600 mr-3" />
@@ -421,7 +457,6 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
                             </div>
                           </div>
 
-                          {/* Cliente */}
                           <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
                             <div className="flex items-center mb-4">
                               <UserIcon className="h-6 w-6 text-green-600 mr-3" />
@@ -443,7 +478,6 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
                             )}
                           </div>
 
-                          {/* Resumen */}
                           <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-6 border border-purple-100">
                             <div className="flex items-center mb-4">
                               <CreditCardIcon className="h-6 w-6 text-purple-600 mr-3" />
@@ -476,7 +510,6 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
                           </div>
                         </div>
 
-                        {/* Métodos de pago */}
                         <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-100">
                           <div className="flex items-center mb-4">
                             <CreditCardIcon className="h-6 w-6 text-orange-600 mr-3" />
@@ -487,7 +520,6 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
                           {renderPaymentMethodsDetail(sale)}
                         </div>
 
-                        {/* Productos vendidos */}
                         <div className="bg-white rounded-xl border border-gray-200">
                           <div className="px-6 py-4 border-b border-gray-200">
                             <h4 className="text-lg font-semibold text-gray-900">Productos Vendidos</h4>
@@ -564,11 +596,39 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
                           </div>
                         </div>
 
-                        {/* Notas */}
                         {sale.notes && (
                           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
                             <h4 className="text-lg font-semibold text-gray-900 mb-3">Notas</h4>
                             <p className="text-sm text-gray-700">{sale.notes}</p>
+                          </div>
+                        )}
+
+                        {sale.status === "cancelled" && (
+                          <div className="bg-red-50 rounded-xl p-6 border border-red-200">
+                            <div className="flex items-center mb-4">
+                              <XCircleIcon className="h-6 w-6 text-red-600 mr-3" />
+                              <h4 className="text-lg font-semibold text-red-900">Información de Cancelación</h4>
+                            </div>
+                            <div className="space-y-3">
+                              {sale.cancelled_by_name && (
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-red-700">Cancelado por:</span>
+                                  <span className="text-sm font-medium text-red-900">{sale.cancelled_by_name}</span>
+                                </div>
+                              )}
+                              {sale.cancelled_at && (
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-red-700">Fecha de cancelación:</span>
+                                  <span className="text-sm font-medium text-red-900">{formatDateTime(sale.cancelled_at)}</span>
+                                </div>
+                              )}
+                              {sale.notes && sale.notes.includes('Cancelada:') && (
+                                <div className="pt-2 border-t border-red-200">
+                                  <span className="text-sm text-red-700">Motivo:</span>
+                                  <p className="text-sm text-red-900 mt-1">{sale.notes.split('Cancelada:')[1]?.trim()}</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -579,8 +639,17 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
                     )}
                   </div>
 
-                  {/* Footer */}
                   <div className="flex gap-3 p-6 border-t border-gray-100 bg-gray-50">
+                    {sale && sale.status === "cancelled" && (
+                      <Button
+                        variant="outline"
+                        onClick={handleRecreateSale}
+                        className="flex items-center text-blue-600 border-blue-300 hover:bg-blue-50"
+                      >
+                        <ArrowPathIcon className="h-4 w-4 mr-2" />
+                        Recrear Venta
+                      </Button>
+                    )}
                     {sale && sale.status === "completed" && (
                       <Button
                         variant="outline"
@@ -600,92 +669,93 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
               </Transition.Child>
             </div>
           </div>
-
-          {/* Modal de confirmación de cancelación */}
-          <Transition appear show={showCancelConfirm} as={Fragment}>
-            <Dialog as="div" className="relative z-[100]" onClose={() => setShowCancelConfirm(false)}>
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-black bg-opacity-25 backdrop-blur-sm" />
-              </Transition.Child>
-
-              <div className="fixed inset-0 overflow-y-auto">
-                <div className="flex min-h-full items-center justify-center p-4 text-center">
-                  <Transition.Child
-                    as={Fragment}
-                    enter="ease-out duration-300"
-                    enterFrom="opacity-0 scale-95"
-                    enterTo="opacity-100 scale-100"
-                    leave="ease-in duration-200"
-                    leaveFrom="opacity-100 scale-100"
-                    leaveTo="opacity-0 scale-95"
-                  >
-                    <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all">
-                      <div className="p-6">
-                        <div className="flex items-center mb-4">
-                          <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                            <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
-                          </div>
-                          <div className="ml-4 text-left">
-                            <h3 className="text-lg font-semibold text-gray-900">Cancelar Venta</h3>
-                            <p className="text-sm text-gray-500 mt-1">
-                              Esta acción no se puede deshacer. Se revertirá el stock y los movimientos financieros.
-                            </p>
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <label htmlFor="cancel-reason" className="block text-sm font-medium text-gray-700 mb-2">
-                            Razón de la cancelación *
-                          </label>
-                          <textarea
-                            id="cancel-reason"
-                            rows={3}
-                            value={cancelReason}
-                            onChange={(e) => setCancelReason(e.target.value)}
-                            placeholder="Ingrese la razón por la cual se cancela esta venta..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-3 p-6 border-t border-gray-100 bg-gray-50">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setShowCancelConfirm(false)
-                            setCancelReason("")
-                          }}
-                          disabled={cancelLoading}
-                          className="flex-1 py-3 text-sm font-medium rounded-lg"
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          onClick={handleCancelSale}
-                          loading={cancelLoading}
-                          disabled={!cancelReason.trim()}
-                          className="flex-1 py-3 text-sm font-medium bg-red-600 hover:bg-red-700 rounded-lg"
-                        >
-                          {cancelLoading ? "Cancelando..." : "Confirmar Cancelación"}
-                        </Button>
-                      </div>
-                    </Dialog.Panel>
-                  </Transition.Child>
-                </div>
-              </div>
-            </Dialog>
-          </Transition>
         </Dialog>
       </Transition>
 
+      {/* Modal de confirmación de cancelación */}
+      <Transition appear show={showCancelConfirm} as={Fragment}>
+        <Dialog as="div" className="relative z-[100]" onClose={() => setShowCancelConfirm(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25 backdrop-blur-sm" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all">
+                  <div className="p-6">
+                    <div className="flex items-center mb-4">
+                      <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                        <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
+                      </div>
+                      <div className="ml-4 text-left">
+                        <h3 className="text-lg font-semibold text-gray-900">Cancelar Venta</h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Esta acción no se puede deshacer. Se revertirá el stock y los movimientos financieros.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <label htmlFor="cancel-reason" className="block text-sm font-medium text-gray-700 mb-2">
+                        Razón de la cancelación *
+                      </label>
+                      <textarea
+                        id="cancel-reason"
+                        rows={3}
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="Ingrese la razón por la cual se cancela esta venta..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 p-6 border-t border-gray-100 bg-gray-50">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowCancelConfirm(false)
+                        setCancelReason("")
+                      }}
+                      disabled={cancelLoading}
+                      className="flex-1 py-3 text-sm font-medium rounded-lg"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleCancelSale}
+                      loading={cancelLoading}
+                      disabled={!cancelReason.trim()}
+                      className="flex-1 py-3 text-sm font-medium bg-red-600 hover:bg-red-700 rounded-lg"
+                    >
+                      {cancelLoading ? "Cancelando..." : "Confirmar Cancelación"}
+                    </Button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+
+      {/* Modal de impresión de tickets */}
       <Transition appear show={showPrintModal} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={() => setShowPrintModal(false)}>
+        <Dialog as="div" className="relative z-[100]" onClose={() => setShowPrintModal(false)}>
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -712,107 +782,69 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
                 <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all">
                   <div className="p-6">
                     <div className="flex items-center mb-4">
-                      <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                        <CheckCircleIcon className="h-6 w-6 text-green-600" />
+                      <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+                        <PrinterIcon className="h-6 w-6 text-blue-600" />
                       </div>
-                    </div>
-                    <div className="text-center mb-6">
-                      <PrinterIcon className="mx-auto h-16 w-16 text-blue-500 mb-3" />
-                      <h4 className="text-lg font-medium text-gray-900 mb-2">
-                        Imprimir Ticket
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        ¿Desea imprimir el ticket de esta venta?
-                      </p>
-                    </div>
-
-                    {/* Información de la venta */}
-                    <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Total:</span>
-                          <span className="font-semibold text-gray-900">
-                            {formatCurrency(sale?.total || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Cliente:</span>
-                          <span className="text-gray-900">
-                            {sale?.customer_name || 'Consumidor Final'}
-                          </span>
-                        </div>
-                        {ticketConfig?.copies_count > 1 && (
-                          <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                            <span className="text-gray-600">Copias:</span>
-                            <div className="flex items-center space-x-2">
-                              <button
-                                type="button"
-                                onClick={() => setPrintCopies(Math.max(1, printCopies - 1))}
-                                className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
-                              >
-                                -
-                              </button>
-                              <span className="font-semibold text-gray-900 w-8 text-center">
-                                {printCopies}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setPrintCopies(Math.min(5, printCopies + 1))}
-                                className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                      <div className="ml-4 text-left">
+                        <h3 className="text-lg font-semibold text-gray-900">Imprimir Ticket</h3>
+                        <p className="text-sm text-gray-500 mt-1">Configura las opciones de impresión</p>
                       </div>
                     </div>
 
-                    {/* Botones de acción */}
-                    <div className="space-y-3">
-                      <button
-                        onClick={handlePrintTicket}
-                        disabled={printing}
-                        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-2.5 rounded-lg flex items-center justify-center font-medium transition-colors"
-                      >
-                        {printing ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Imprimiendo...
-                          </>
-                        ) : (
-                          <>
-                            <PrinterIcon className="h-5 w-5 mr-2" />
-                            Imprimir Ticket
-                          </>
-                        )}
-                      </button>
+                    <div className="space-y-4">
+                      <div>
+                        <label htmlFor="print-copies" className="block text-sm font-medium text-gray-700 mb-2">
+                          Número de copias
+                        </label>
+                        <input
+                          id="print-copies"
+                          type="number"
+                          min="1"
+                          max="5"
+                          value={printCopies}
+                          onChange={(e) => setPrintCopies(Math.max(1, Math.min(5, parseInt(e.target.value) || 1)))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
 
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
                           onClick={handlePreviewTicket}
-                          type="button"
-                          className="py-2 px-3 text-sm bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg transition-colors"
+                          className="flex-1 flex items-center justify-center"
                         >
+                          <EyeIcon className="h-4 w-4 mr-2" />
                           Vista Previa
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="outline"
                           onClick={handleDownloadTicket}
-                          type="button"
-                          className="py-2 px-3 text-sm bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg transition-colors"
+                          className="flex-1 flex items-center justify-center"
                         >
+                          <DocumentDuplicateIcon className="h-4 w-4 mr-2" />
                           Descargar
-                        </button>
+                        </Button>
                       </div>
-
-                      <button
-                        onClick={() => setShowPrintModal(false)}
-                        type="button"
-                        className="w-full py-2 text-gray-600 hover:text-gray-900 transition-colors"
-                      >
-                        Cerrar
-                      </button>
                     </div>
+                  </div>
+
+                  <div className="flex gap-3 p-6 border-t border-gray-100 bg-gray-50">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowPrintModal(false)}
+                      disabled={printing}
+                      className="flex-1 py-3 text-sm font-medium rounded-lg"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handlePrintTicket}
+                      loading={printing}
+                      disabled={printing}
+                      className="flex-1 py-3 text-sm font-medium bg-blue-600 hover:bg-blue-700 rounded-lg"
+                    >
+                      {printing ? "Imprimiendo..." : "Imprimir"}
+                    </Button>
                   </div>
                 </Dialog.Panel>
               </Transition.Child>
