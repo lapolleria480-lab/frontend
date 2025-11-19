@@ -344,7 +344,7 @@ Estado: ${sale.status === "completed" ? "Completada" : "Cancelada"}
       
       onClose()
       
-      navigate('/sales')
+      navigate('/ventas')
       
       showToast(`Venta #${sale.id} cargada en el carrito. Puedes modificarla antes de procesarla.`, "success")
     } catch (error) {
