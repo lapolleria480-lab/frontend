@@ -6,32 +6,28 @@ import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts"
 import { formatCurrency, formatStock, validateQuantity, getUnitLabel } from "../../lib/formatters"
 import { PAYMENT_METHODS } from "../../lib/constants"
 import Button from "../common/Button"
-import {
-  TrashIcon,
-  MinusIcon,
-  PlusIcon,
-  ShoppingCartIcon,
-  PhotoIcon,
-} from "@heroicons/react/24/outline"
+import { TrashIcon, MinusIcon, PlusIcon, ShoppingCartIcon, PhotoIcon, TagIcon } from "@heroicons/react/24/outline"
 
 const Cart = () => {
   const {
     cart,
     cartTotal,
+    cartDiscount,
     customer,
     paymentMethod,
     updateCartItemQuantity,
     removeFromCart,
     clearCart,
     setShowPaymentModal,
+    setShowDiscountModal,
   } = useSalesStore()
 
   const { registerOpenProcessSale } = useKeyboardShortcuts()
 
   const [editingQuantity, setEditingQuantity] = useState(null)
   const [tempQuantity, setTempQuantity] = useState("")
-  
-  const finalTotal = cartTotal
+
+  const finalTotal = cartTotal - cartDiscount
 
   useEffect(() => {
     registerOpenProcessSale(() => {
@@ -65,9 +61,13 @@ const Cart = () => {
   const confirmQuantityEdit = (item) => {
     const newQuantity = Number.parseFloat(tempQuantity)
 
-    const roundedNewQuantity = item.unit_type === "kg" ? Math.round(newQuantity * 100) / 100 : newQuantity;
+    const roundedNewQuantity = item.unit_type === "kg" ? Math.round(newQuantity * 100) / 100 : newQuantity
 
-    if (validateQuantity(roundedNewQuantity, item.unit_type) && roundedNewQuantity > 0 && roundedNewQuantity <= item.stock) {
+    if (
+      validateQuantity(roundedNewQuantity, item.unit_type) &&
+      roundedNewQuantity > 0 &&
+      roundedNewQuantity <= item.stock
+    ) {
       updateCartItemQuantity(item.id, roundedNewQuantity)
     } else {
       setTempQuantity(item.unit_type === "kg" ? item.quantity.toFixed(2) : item.quantity.toString())
@@ -129,7 +129,7 @@ const Cart = () => {
                 {item.image ? (
                   <img src={item.image || "/placeholder.svg"} alt={item.name} className="h-full w-full object-cover" />
                 ) : (
-                  <PhotoIcon className="h-4 w-4 text-gray-400" /> 
+                  <PhotoIcon className="h-4 w-4 text-gray-400" />
                 )}
               </div>
 
@@ -210,7 +210,7 @@ const Cart = () => {
 
                 {/* Advertencia de stock */}
                 {item.quantity >= item.stock && (
-                  <p className="text-xs text-red-500 font-medium mt-0.5">Stock máximo alcanzado</p> 
+                  <p className="text-xs text-red-500 font-medium mt-0.5">Stock máximo alcanzado</p>
                 )}
               </div>
             </div>
@@ -225,6 +225,21 @@ const Cart = () => {
             <span className="text-gray-600">Subtotal:</span>
             <span className="font-medium">{formatCurrency(cartTotal)}</span>
           </div>
+
+          {cartDiscount > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-purple-600">Descuento:</span>
+              <span className="font-medium text-purple-600">-{formatCurrency(cartDiscount)}</span>
+            </div>
+          )}
+
+          <button
+            onClick={() => setShowDiscountModal(true)}
+            className="w-full flex items-center justify-center space-x-2 py-2 px-3 text-sm font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200"
+          >
+            <TagIcon className="h-4 w-4" />
+            <span>{cartDiscount > 0 ? "Modificar descuento" : "Aplicar descuento"}</span>
+          </button>
 
           <div className="flex justify-between text-lg font-bold border-t pt-2">
             <span>Total:</span>

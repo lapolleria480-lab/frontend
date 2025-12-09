@@ -20,7 +20,6 @@ import {
   UserIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  MagnifyingGlassIcon,
   BoltIcon,
   PlusIcon,
   TrashIcon,
@@ -31,6 +30,7 @@ const PaymentModal = () => {
     showPaymentModal,
     setShowPaymentModal,
     cartTotal,
+    cartDiscount, // Added cartDiscount from updates
     cartTax, // Ensure cartTax is available for finalTotal calculation
     paymentMethod,
     setPaymentMethod,
@@ -69,7 +69,8 @@ const PaymentModal = () => {
 
   const amountInputRef = useRef(null)
 
-  const finalTotal = cartTotal + cartTax // Corrected: No cartDiscount
+  // FIX: Calculando total final con descuento
+  const finalTotal = cartTotal - cartDiscount + cartTax // Corrected: Now includes cartDiscount
 
   // FIX: Define 'change' here
   const change = paymentData.amountReceived - finalTotal
@@ -123,9 +124,7 @@ const PaymentModal = () => {
       fetchCustomers({ active: "true" }, true) // Force refresh when modal opens
       // Set default customer if none is selected in salesStore
       if (!customer) {
-        const defaultClient = customers.find(
-          (c) => c.document_number === "00000000" && c.name === "Consumidor Final"
-        )
+        const defaultClient = customers.find((c) => c.document_number === "00000000" && c.name === "Consumidor Final")
         if (defaultClient) {
           setCustomer(defaultClient)
         }
@@ -155,7 +154,7 @@ const PaymentModal = () => {
     let isMounted = true
     const timeoutId = setTimeout(async () => {
       if (!isMounted) return
-      
+
       setLoadingBalance(true)
       try {
         const balance = await getCustomerBalance(customer.id, true) // Force refresh balance
@@ -178,7 +177,7 @@ const PaymentModal = () => {
       isMounted = false
       clearTimeout(timeoutId)
     }
-  }, [customer?.id, isDefaultCustomer, getCustomerBalance])
+  }, [customer, isDefaultCustomer, getCustomerBalance]) // Corrected dependency array for lint/correctness/useExhaustiveDependencies
 
   // Reset payment data when modal opens
   useEffect(() => {
@@ -429,7 +428,7 @@ const PaymentModal = () => {
                           <input
                             type="checkbox"
                             checked={multiplePaymentMode}
-                            onChange={(e) => handleToggleMultiplePayments(e.target.checked)}
+                            onChange={(e) => setMultiplePaymentMode(e.target.checked)} // Update from updates
                             className="sr-only"
                           />
                           <div
@@ -460,6 +459,18 @@ const PaymentModal = () => {
 
                   {/* Contenido Principal */}
                   <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    {/* Total a pagar con descuento visible */}
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white text-center">
+                      <p className="text-blue-100 text-sm font-medium mb-1">Total a pagar</p>
+                      <p className="text-3xl font-bold mb-2">{formatCurrency(finalTotal)}</p>
+                      {cartDiscount > 0 && (
+                        <div className="text-sm text-blue-100 space-y-1">
+                          <p>Subtotal: {formatCurrency(cartTotal)}</p>
+                          <p className="text-yellow-200">Descuento: -{formatCurrency(cartDiscount)}</p>
+                        </div>
+                      )}
+                    </div>
+
                     {/* MODO PAGO SIMPLE: Total + Información de validación para múltiples pagos */}
                     {!multiplePaymentMode && (
                       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -486,7 +497,7 @@ const PaymentModal = () => {
                                     : method.disabled
                                       ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
                                       : `${method.color} ${method.hoverColor} hover:shadow-sm hover:transform hover:scale-102`
-                               }`}
+                                }`}
                               >
                                 <method.icon className="h-4 w-4 mb-1" />
                                 <p className="font-medium text-xs">{method.name}</p>
@@ -707,7 +718,7 @@ const PaymentModal = () => {
                                     <XMarkIcon className="h-3 w-3" />
                                   </button>
                                 </div>
-                                
+
                                 <button
                                   onClick={() => setShowCustomerSelector(true)} // Open CustomerSelectModal
                                   className="w-full flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
@@ -910,7 +921,9 @@ const PaymentModal = () => {
                                     />
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-medium text-purple-800 mb-1">Interés (%)</label>
+                                    <label className="block text-xs font-medium text-purple-800 mb-1">
+                                      Interés (%)
+                                    </label>
                                     <input
                                       type="number"
                                       min="0"
@@ -953,7 +966,8 @@ const PaymentModal = () => {
                                       <p className="text-xs text-purple-600">
                                         {paymentData.installments} cuotas de{" "}
                                         {formatCurrency(
-                                          (finalTotal * (1 + paymentData.interestRate / 100)) / paymentData.installments,
+                                          (finalTotal * (1 + paymentData.interestRate / 100)) /
+                                            paymentData.installments,
                                         )}
                                       </p>
                                     </div>
@@ -1098,20 +1112,21 @@ const PaymentModal = () => {
               </Transition.Child>
             </div>
           </div>
-          {/* Customer Select Modal (always rendered but hidden) */}
-          <CustomerSelectModal
-            show={showCustomerSelector}
-            onClose={() => setShowCustomerSelector(false)}
-            onSelectCustomer={handleCustomerSelect}
-          />
         </Dialog>
       </Transition>
 
-      <TicketPrintModal
-        isOpen={showTicketPrintModal}
-        onClose={() => setShowTicketPrintModal(false)}
-        saleData={lastCompletedSale}
+      {/* Modales secundarios */}
+      <CustomerSelectModal
+        isOpen={showCustomerSelector} // Updated from show to isOpen
+        onClose={() => setShowCustomerSelector(false)}
+        onSelectCustomer={(customer) => {
+          // Updated from onSelectCustomer={handleCustomerSelect} to inline function
+          setCustomer(customer)
+          setShowCustomerSelector(false)
+        }}
       />
+
+      <TicketPrintModal />
     </>
   )
 }
