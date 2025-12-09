@@ -15,12 +15,10 @@ import {
   CreditCardIcon,
   ArrowsRightLeftIcon,
   UserIcon,
-  CheckCircleIcon,
   AdjustmentsHorizontalIcon,
   CurrencyDollarIcon,
   ReceiptPercentIcon,
   PlusIcon,
-  DocumentIcon,
 } from "@heroicons/react/24/outline"
 
 const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
@@ -221,8 +219,8 @@ const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-hidden">
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 overflow-hidden">
                     <div className="lg:col-span-1 hidden lg:block border-r border-gray-100 bg-gray-50 p-6 overflow-y-auto">
                       <div className="sticky top-0">
                         <div className="flex items-center mb-4">
@@ -301,8 +299,8 @@ const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
                       </div>
                     </div>
 
-                    <div className="lg:col-span-3 flex flex-col">
-                      <div className="flex-1 overflow-y-auto max-h-[calc(95vh-220px)] p-6">
+                    <div className="lg:col-span-3 flex flex-col overflow-hidden">
+                      <div className="flex-1 overflow-y-auto p-6">
                         <form onSubmit={handleSubmit} className="space-y-6">
                           <div>
                             <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
@@ -362,16 +360,19 @@ const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
                                     name="amount"
                                     value={formData.amount}
                                     onValueChange={(values) => {
-                                      setFormData((prev) => ({ ...prev, amount: values.value }))
+                                      setFormData((prev) => ({ ...prev, amount: values.floatValue || "" }))
                                       if (errors.amount) setErrors((prev) => ({ ...prev, amount: "" }))
                                     }}
                                     thousandSeparator="."
                                     decimalSeparator=","
                                     prefix="$"
-                                    isNumericString={true}
+                                    decimalScale={2}
+                                    fixedDecimalScale={false}
+                                    allowLeadingZeros={false}
                                     customInput={(props) => (
                                       <input
                                         {...props}
+                                        type="text"
                                         className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
                                           errors.amount
                                             ? "border-red-300 bg-red-50"
@@ -426,15 +427,9 @@ const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
                                               : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                                           }`}
                                         >
-                                          <div className="flex flex-col items-center gap-1">
-                                            <div
-                                              className={`flex-shrink-0 p-1.5 rounded-lg bg-gradient-to-br ${method.color}`}
-                                            >
-                                              <Icon className="h-4 w-4 text-white" />
-                                            </div>
-                                            <p className="font-medium text-gray-900 text-xs line-clamp-1">
-                                              {method.label}
-                                            </p>
+                                          <div className="flex flex-col items-center gap-1.5">
+                                            <Icon className="h-5 w-5 text-gray-600" />
+                                            <span className="text-xs font-medium text-gray-900">{method.label}</span>
                                           </div>
                                         </button>
                                       )
@@ -446,11 +441,7 @@ const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
                           </div>
 
                           <div className="pt-4 border-t border-gray-100">
-                            <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
-                              <DocumentIcon className="h-4 w-4 mr-2 text-blue-600" />
-                              Detalles
-                            </h3>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                               <div>
                                 <label htmlFor="reference" className="block text-sm font-medium text-gray-700 mb-1.5">
                                   Referencia
@@ -462,7 +453,7 @@ const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
                                   value={formData.reference}
                                   onChange={handleChange}
                                   className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
-                                  placeholder="Ej: Referencia del pago"
+                                  placeholder="Ej: Comprobante #12345"
                                 />
                               </div>
 
@@ -477,7 +468,7 @@ const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
                                   value={formData.description}
                                   onChange={handleChange}
                                   className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
-                                  placeholder="Descripción de la transacción"
+                                  placeholder="Ej: Pago parcial de cuenta"
                                 />
                               </div>
                             </div>
@@ -485,32 +476,12 @@ const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
                         </form>
                       </div>
 
-                      <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={onClose}
-                          className="py-2.5 px-5 text-sm bg-transparent"
-                        >
+                      <div className="flex justify-end gap-3 px-6 py-6 border-t border-gray-200 bg-gray-50">
+                        <Button variant="outline" onClick={onClose} disabled={loading}>
                           Cancelar
                         </Button>
-                        <Button
-                          type="button"
-                          onClick={handleSubmit}
-                          disabled={loading}
-                          className="py-2.5 px-5 text-sm bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {loading ? (
-                            <>
-                              <div className="inline-block animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white mr-2" />
-                              Registrando...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircleIcon className="h-4 w-4 mr-2" />
-                              Registrar Transacción
-                            </>
-                          )}
+                        <Button onClick={handleSubmit} disabled={loading} loading={loading}>
+                          {loading ? "Registrando..." : "Registrar Transacción"}
                         </Button>
                       </div>
                     </div>

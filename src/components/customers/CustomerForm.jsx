@@ -16,7 +16,6 @@ import {
   PhoneIcon,
   MapPinIcon,
   CurrencyDollarIcon,
-  CheckCircleIcon,
   PlusIcon,
   PencilIcon,
 } from "@heroicons/react/24/outline"
@@ -201,8 +200,8 @@ const CustomerForm = ({ customer, onClose, onSuccess }) => {
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-hidden">
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 overflow-hidden">
                     <div className="lg:col-span-1 hidden lg:block border-r border-gray-100 bg-gray-50 p-6 overflow-y-auto">
                       <div className="sticky top-0">
                         <div className="flex items-center mb-4">
@@ -270,8 +269,8 @@ const CustomerForm = ({ customer, onClose, onSuccess }) => {
                       </div>
                     </div>
 
-                    <div className="lg:col-span-3 flex flex-col">
-                      <div className="flex-1 overflow-y-auto max-h-[calc(95vh-180px)] p-6">
+                    <div className="lg:col-span-3 flex flex-col overflow-hidden">
+                      <div className="flex-1 overflow-y-auto p-6">
                         <form onSubmit={handleSubmit} className="space-y-6">
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div>
@@ -444,21 +443,34 @@ const CustomerForm = ({ customer, onClose, onSuccess }) => {
                                       onValueChange={(values) => {
                                         setFormData((prev) => ({
                                           ...prev,
-                                          credit_limit: values.value,
+                                          credit_limit: values.floatValue ? values.floatValue.toString() : "",
                                         }))
                                       }}
                                       thousandSeparator="."
                                       decimalSeparator=","
                                       prefix="$"
-                                      isNumericString={true}
+                                      decimalScale={2}
+                                      fixedDecimalScale={false}
+                                      allowLeadingZeros={false}
                                       customInput={(props) => (
                                         <input
                                           {...props}
-                                          className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
+                                          type="text"
+                                          className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                                            errors.credit_limit
+                                              ? "border-red-300 bg-red-50"
+                                              : "border-gray-300 hover:border-gray-400 bg-white"
+                                          }`}
                                           placeholder="$0"
                                         />
                                       )}
                                     />
+                                    {errors.credit_limit && (
+                                      <p className="mt-1.5 text-xs text-red-600 flex items-center">
+                                        <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
+                                        {errors.credit_limit}
+                                      </p>
+                                    )}
                                   </div>
 
                                   <div>
@@ -468,63 +480,39 @@ const CustomerForm = ({ customer, onClose, onSuccess }) => {
                                     <textarea
                                       name="notes"
                                       id="notes"
-                                      rows="2"
                                       value={formData.notes}
                                       onChange={handleChange}
+                                      rows="2"
                                       className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white resize-none"
-                                      placeholder="Notas adicionales sobre el cliente"
+                                      placeholder="Ej: Información adicional o referencias"
                                     />
-                                  </div>
-
-                                  <div className="flex items-center gap-3 pt-2">
-                                    <input
-                                      type="checkbox"
-                                      name="active"
-                                      id="active"
-                                      checked={formData.active}
-                                      onChange={(e) => setFormData((prev) => ({ ...prev, active: e.target.checked }))}
-                                      className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500 rounded cursor-pointer"
-                                    />
-                                    <label
-                                      htmlFor="active"
-                                      className="text-sm font-medium text-gray-700 cursor-pointer"
-                                    >
-                                      Cliente activo
-                                    </label>
                                   </div>
                                 </div>
                               </div>
                             </div>
                           </div>
+
+                          <div className="pt-4 border-t border-gray-100">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                name="active"
+                                checked={formData.active}
+                                onChange={handleChange}
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm font-medium text-gray-700">Cliente activo</span>
+                            </label>
+                          </div>
                         </form>
                       </div>
 
-                      <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={onClose}
-                          className="py-2.5 px-5 text-sm bg-transparent"
-                        >
+                      <div className="flex justify-end gap-3 px-6 py-6 border-t border-gray-200 bg-gray-50">
+                        <Button variant="outline" onClick={onClose} disabled={loading}>
                           Cancelar
                         </Button>
-                        <Button
-                          type="button"
-                          onClick={handleSubmit}
-                          disabled={loading}
-                          className="py-2.5 px-5 text-sm bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {loading ? (
-                            <>
-                              <div className="inline-block animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white mr-2" />
-                              Guardando...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircleIcon className="h-4 w-4 mr-2" />
-                              {customer ? "Actualizar" : "Crear"}
-                            </>
-                          )}
+                        <Button onClick={handleSubmit} disabled={loading} loading={loading}>
+                          {loading ? "Guardando..." : customer ? "Actualizar Cliente" : "Crear Cliente"}
                         </Button>
                       </div>
                     </div>
