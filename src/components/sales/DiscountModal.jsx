@@ -118,6 +118,8 @@ const DiscountModal = () => {
 
   const finalTotal = cartTotal - calculatedDiscount
 
+  if (!showDiscountModal) return null
+
   return (
     <Transition appear show={showDiscountModal} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={() => setShowDiscountModal(false)}>
