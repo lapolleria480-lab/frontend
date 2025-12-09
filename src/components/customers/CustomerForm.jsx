@@ -7,6 +7,7 @@ import { useCustomerStore } from "../../stores/customerStore"
 import { useToast } from "../../hooks/useToast"
 import { formatCurrency } from "../../lib/formatters"
 import Button from "../common/Button"
+import NumericFormat from "react-number-format"
 import {
   XMarkIcon,
   ExclamationTriangleIcon,
@@ -273,218 +274,232 @@ const CustomerForm = ({ customer, onClose, onSuccess }) => {
                     {/* Formulario principal */}
                     <div className="lg:col-span-3 flex flex-col">
                       <div className="flex-1 overflow-y-auto max-h-[calc(95vh-180px)] p-6">
-                        <form onSubmit={handleSubmit} className="space-y-5">
-                          <div>
-                            <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
-                              <UserIcon className="h-4 w-4 mr-2 text-blue-600" />
-                              Información Básica
-                            </h3>
-                            <div className="space-y-4">
-                              <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                  Nombre completo <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                  type="text"
-                                  name="name"
-                                  id="name"
-                                  value={formData.name}
-                                  onChange={handleChange}
-                                  className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                                    errors.name
-                                      ? "border-red-300 bg-red-50"
-                                      : "border-gray-300 hover:border-gray-400 bg-white"
-                                  }`}
-                                  placeholder="Ej: Juan García López"
-                                  autoFocus
-                                />
-                                {errors.name && (
-                                  <p className="mt-1.5 text-xs text-red-600 flex items-center">
-                                    <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
-                                    {errors.name}
-                                  </p>
-                                )}
-                              </div>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Left column: Información Básica */}
+                            <div>
+                              <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
+                                <UserIcon className="h-4 w-4 mr-2 text-blue-600" />
+                                Información Básica
+                              </h3>
+                              <div className="space-y-4">
+                                <div>
+                                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Nombre completo <span className="text-red-500">*</span>
+                                  </label>
+                                  <input
+                                    type="text"
+                                    name="name"
+                                    id="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                                      errors.name
+                                        ? "border-red-300 bg-red-50"
+                                        : "border-gray-300 hover:border-gray-400 bg-white"
+                                    }`}
+                                    placeholder="Ej: Juan García López"
+                                    autoFocus
+                                  />
+                                  {errors.name && (
+                                    <p className="mt-1.5 text-xs text-red-600 flex items-center">
+                                      <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
+                                      {errors.name}
+                                    </p>
+                                  )}
+                                </div>
 
-                              <div>
-                                <label
-                                  htmlFor="document_number"
-                                  className="block text-sm font-medium text-gray-700 mb-1.5"
-                                >
-                                  Número de Documento
-                                </label>
-                                <input
-                                  type="text"
-                                  name="document_number"
-                                  id="document_number"
-                                  value={formData.document_number}
-                                  onChange={handleChange}
-                                  className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
-                                  placeholder="Ej: 12.345.678-9"
-                                />
+                                <div>
+                                  <label
+                                    htmlFor="document_number"
+                                    className="block text-sm font-medium text-gray-700 mb-1.5"
+                                  >
+                                    Número de Documento
+                                  </label>
+                                  <input
+                                    type="text"
+                                    name="document_number"
+                                    id="document_number"
+                                    value={formData.document_number}
+                                    onChange={handleChange}
+                                    className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
+                                    placeholder="Ej: 12.345.678-9"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Right column: Información de Contacto */}
+                            <div>
+                              <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
+                                <EnvelopeIcon className="h-4 w-4 mr-2 text-blue-600" />
+                                Información de Contacto
+                              </h3>
+                              <div className="space-y-4">
+                                <div>
+                                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Email
+                                  </label>
+                                  <input
+                                    type="email"
+                                    name="email"
+                                    id="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                                      errors.email
+                                        ? "border-red-300 bg-red-50"
+                                        : "border-gray-300 hover:border-gray-400 bg-white"
+                                    }`}
+                                    placeholder="correo@ejemplo.com"
+                                  />
+                                  {errors.email && (
+                                    <p className="mt-1.5 text-xs text-red-600 flex items-center">
+                                      <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
+                                      {errors.email}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Teléfono
+                                  </label>
+                                  <input
+                                    type="tel"
+                                    name="phone"
+                                    id="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                                      errors.phone
+                                        ? "border-red-300 bg-red-50"
+                                        : "border-gray-300 hover:border-gray-400 bg-white"
+                                    }`}
+                                    placeholder="Ej: +56 9 1234 5678"
+                                  />
+                                  {errors.phone && (
+                                    <p className="mt-1.5 text-xs text-red-600 flex items-center">
+                                      <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
+                                      {errors.phone}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
 
+                          {/* Second row: Ubicación and Crédito y Notas */}
                           <div className="pt-4 border-t border-gray-100">
-                            <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
-                              <EnvelopeIcon className="h-4 w-4 mr-2 text-blue-600" />
-                              Información de Contacto
-                            </h3>
-                            <div className="space-y-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              {/* Left column: Ubicación */}
                               <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                  Email
-                                </label>
-                                <input
-                                  type="email"
-                                  name="email"
-                                  id="email"
-                                  value={formData.email}
-                                  onChange={handleChange}
-                                  className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                                    errors.email
-                                      ? "border-red-300 bg-red-50"
-                                      : "border-gray-300 hover:border-gray-400 bg-white"
-                                  }`}
-                                  placeholder=" correo@ejemplo.com"
-                                />
-                                {errors.email && (
-                                  <p className="mt-1.5 text-xs text-red-600 flex items-center">
-                                    <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
-                                    {errors.email}
-                                  </p>
-                                )}
+                                <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
+                                  <MapPinIcon className="h-4 w-4 mr-2 text-blue-600" />
+                                  Ubicación
+                                </h3>
+                                <div className="space-y-4">
+                                  <div>
+                                    <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                      Dirección
+                                    </label>
+                                    <input
+                                      type="text"
+                                      name="address"
+                                      id="address"
+                                      value={formData.address}
+                                      onChange={handleChange}
+                                      className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
+                                      placeholder="Ej: Calle Principal 123"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                      Ciudad
+                                    </label>
+                                    <input
+                                      type="text"
+                                      name="city"
+                                      id="city"
+                                      value={formData.city}
+                                      onChange={handleChange}
+                                      className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
+                                      placeholder="Ej: Santiago"
+                                    />
+                                  </div>
+                                </div>
                               </div>
 
+                              {/* Right column: Crédito y Notas */}
                               <div>
-                                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                  Teléfono
-                                </label>
-                                <input
-                                  type="tel"
-                                  name="phone"
-                                  id="phone"
-                                  value={formData.phone}
-                                  onChange={handleChange}
-                                  className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                                    errors.phone
-                                      ? "border-red-300 bg-red-50"
-                                      : "border-gray-300 hover:border-gray-400 bg-white"
-                                  }`}
-                                  placeholder="Ej: +56 9 1234 5678"
-                                />
-                                {errors.phone && (
-                                  <p className="mt-1.5 text-xs text-red-600 flex items-center">
-                                    <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
-                                    {errors.phone}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                                <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
+                                  <CurrencyDollarIcon className="h-4 w-4 mr-2 text-blue-600" />
+                                  Crédito y Notas
+                                </h3>
+                                <div className="space-y-4">
+                                  <div>
+                                    <label
+                                      htmlFor="credit_limit"
+                                      className="block text-sm font-medium text-gray-700 mb-1.5"
+                                    >
+                                      Límite de Crédito
+                                    </label>
+                                    <NumericFormat
+                                      name="credit_limit"
+                                      value={formData.credit_limit}
+                                      onValueChange={(values) => {
+                                        setFormData((prev) => ({
+                                          ...prev,
+                                          credit_limit: values.value,
+                                        }))
+                                      }}
+                                      thousandSeparator="."
+                                      decimalSeparator=","
+                                      prefix="$"
+                                      isNumericString={true}
+                                      customInput={(props) => (
+                                        <input
+                                          {...props}
+                                          className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
+                                          placeholder="$0"
+                                        />
+                                      )}
+                                    />
+                                  </div>
 
-                          <div className="pt-4 border-t border-gray-100">
-                            <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
-                              <MapPinIcon className="h-4 w-4 mr-2 text-blue-600" />
-                              Ubicación
-                            </h3>
-                            <div className="space-y-4">
-                              <div>
-                                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                  Dirección
-                                </label>
-                                <input
-                                  type="text"
-                                  name="address"
-                                  id="address"
-                                  value={formData.address}
-                                  onChange={handleChange}
-                                  className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
-                                  placeholder="Ej: Calle Principal 123"
-                                />
-                              </div>
+                                  <div>
+                                    <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                      Notas
+                                    </label>
+                                    <textarea
+                                      name="notes"
+                                      id="notes"
+                                      rows="2"
+                                      value={formData.notes}
+                                      onChange={handleChange}
+                                      className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white resize-none"
+                                      placeholder="Notas adicionales sobre el cliente"
+                                    />
+                                  </div>
 
-                              <div>
-                                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                  Ciudad
-                                </label>
-                                <input
-                                  type="text"
-                                  name="city"
-                                  id="city"
-                                  value={formData.city}
-                                  onChange={handleChange}
-                                  className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
-                                  placeholder="Ej: Santiago"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="pt-4 border-t border-gray-100">
-                            <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
-                              <CurrencyDollarIcon className="h-4 w-4 mr-2 text-blue-600" />
-                              Crédito y Notas
-                            </h3>
-                            <div className="space-y-4">
-                              <div>
-                                <label
-                                  htmlFor="credit_limit"
-                                  className="block text-sm font-medium text-gray-700 mb-1.5"
-                                >
-                                  Límite de Crédito
-                                </label>
-                                <input
-                                  type="number"
-                                  name="credit_limit"
-                                  id="credit_limit"
-                                  value={formData.credit_limit}
-                                  onChange={handleChange}
-                                  className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                                    errors.credit_limit
-                                      ? "border-red-300 bg-red-50"
-                                      : "border-gray-300 hover:border-gray-400 bg-white"
-                                  }`}
-                                  placeholder="0"
-                                  min="0"
-                                  step="0.01"
-                                />
-                                {errors.credit_limit && (
-                                  <p className="mt-1.5 text-xs text-red-600 flex items-center">
-                                    <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
-                                    {errors.credit_limit}
-                                  </p>
-                                )}
-                              </div>
-
-                              <div>
-                                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                  Notas
-                                </label>
-                                <textarea
-                                  name="notes"
-                                  id="notes"
-                                  value={formData.notes}
-                                  onChange={handleChange}
-                                  className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white resize-none"
-                                  placeholder="Información adicional sobre el cliente..."
-                                  rows="3"
-                                />
-                              </div>
-
-                              <div className="flex items-center gap-3 pt-2">
-                                <input
-                                  type="checkbox"
-                                  name="active"
-                                  id="active"
-                                  checked={formData.active}
-                                  onChange={handleChange}
-                                  className="h-4 w-4 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                />
-                                <label htmlFor="active" className="text-sm font-medium text-gray-700 cursor-pointer">
-                                  Cliente activo
-                                </label>
+                                  <div className="flex items-center gap-3 pt-2">
+                                    <input
+                                      type="checkbox"
+                                      name="active"
+                                      id="active"
+                                      checked={formData.active}
+                                      onChange={(e) => setFormData((prev) => ({ ...prev, active: e.target.checked }))}
+                                      className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500 rounded cursor-pointer"
+                                    />
+                                    <label
+                                      htmlFor="active"
+                                      className="text-sm font-medium text-gray-700 cursor-pointer"
+                                    >
+                                      Cliente activo
+                                    </label>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>

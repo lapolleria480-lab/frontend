@@ -19,9 +19,9 @@ import {
   ArrowTrendingDownIcon,
   AdjustmentsHorizontalIcon,
   CurrencyDollarIcon,
-  DocumentTextIcon,
   ReceiptPercentIcon,
   PlusIcon,
+  DocumentIcon,
 } from "@heroicons/react/24/outline"
 
 const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
@@ -237,8 +237,8 @@ const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
                     <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
                       <UserIcon className="h-5 w-5 text-blue-600" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900">{customer.name}</h3>
+                    <div className="flex-1 text-left">
+                      <h3 className="text-lg font-semibold text-gray-900 text-left">{customer.name}</h3>
                       <div className="flex items-center gap-4 text-sm mt-1">
                         <span className="text-gray-600">
                           Saldo:{" "}
@@ -386,125 +386,114 @@ const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
                           </div>
 
                           <div className="pt-4 border-t border-gray-100">
-                            <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
-                              <CurrencyDollarIcon className="h-4 w-4 mr-2 text-blue-600" />
-                              Monto
-                            </h3>
-                            <div>
-                              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                Cantidad <span className="text-red-500">*</span>
-                              </label>
-                              <NumericFormat
-                                name="amount"
-                                value={formData.amount}
-                                onValueChange={(values) => {
-                                  setFormData((prev) => ({ ...prev, amount: values.value }))
-                                  if (errors.amount) setErrors((prev) => ({ ...prev, amount: "" }))
-                                }}
-                                thousandSeparator="."
-                                decimalSeparator=","
-                                prefix="$"
-                                isNumericString={true}
-                                customInput={(props) => (
-                                  <input
-                                    {...props}
-                                    className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                                      errors.amount
-                                        ? "border-red-300 bg-red-50"
-                                        : "border-gray-300 hover:border-gray-400 bg-white"
-                                    }`}
-                                    placeholder="$0"
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              {/* Amount field */}
+                              <div>
+                                <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
+                                  <CurrencyDollarIcon className="h-4 w-4 mr-2 text-blue-600" />
+                                  Monto
+                                </h3>
+                                <div>
+                                  <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Cantidad <span className="text-red-500">*</span>
+                                  </label>
+                                  <NumericFormat
+                                    name="amount"
+                                    value={formData.amount}
+                                    onValueChange={(values) => {
+                                      setFormData((prev) => ({ ...prev, amount: values.value }))
+                                      if (errors.amount) setErrors((prev) => ({ ...prev, amount: "" }))
+                                    }}
+                                    thousandSeparator="."
+                                    decimalSeparator=","
+                                    prefix="$"
+                                    isNumericString={true}
+                                    customInput={(props) => (
+                                      <input
+                                        {...props}
+                                        className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                                          errors.amount
+                                            ? "border-red-300 bg-red-50"
+                                            : "border-gray-300 hover:border-gray-400 bg-white"
+                                        }`}
+                                        placeholder="$0"
+                                      />
+                                    )}
                                   />
-                                )}
-                              />
-                              {errors.amount && (
-                                <p className="mt-1.5 text-xs text-red-600 flex items-center">
-                                  <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
-                                  {errors.amount}
-                                </p>
+                                  {errors.amount && (
+                                    <p className="mt-1.5 text-xs text-red-600 flex items-center">
+                                      <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
+                                      {errors.amount}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Payment method field - only visible for PAGO transactions */}
+                              {formData.type === TRANSACTION_TYPES.PAGO && (
+                                <div>
+                                  <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
+                                    <CreditCardIcon className="h-4 w-4 mr-2 text-blue-600" />
+                                    Método de Pago
+                                  </h3>
+                                  {errors.payment_method && (
+                                    <p className="mb-3 text-xs text-red-600 flex items-center">
+                                      <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
+                                      {errors.payment_method}
+                                    </p>
+                                  )}
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {paymentMethods.map((method) => {
+                                      const Icon = method.icon
+                                      return (
+                                        <button
+                                          key={method.value}
+                                          type="button"
+                                          onClick={() => {
+                                            setFormData((prev) => ({
+                                              ...prev,
+                                              payment_method: method.value,
+                                            }))
+                                            if (errors.payment_method)
+                                              setErrors((prev) => ({
+                                                ...prev,
+                                                payment_method: "",
+                                              }))
+                                          }}
+                                          className={`p-3 rounded-lg border-2 transition-all text-center ${
+                                            formData.payment_method === method.value
+                                              ? "border-blue-500 bg-blue-50 shadow-sm"
+                                              : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                                          }`}
+                                        >
+                                          <div className="flex flex-col items-center gap-1">
+                                            <div
+                                              className={`flex-shrink-0 p-1.5 rounded-lg bg-gradient-to-br ${method.color}`}
+                                            >
+                                              <Icon className="h-4 w-4 text-white" />
+                                            </div>
+                                            <p className="font-medium text-gray-900 text-xs line-clamp-1">
+                                              {method.label}
+                                            </p>
+                                          </div>
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
                               )}
                             </div>
                           </div>
 
-                          {formData.type === TRANSACTION_TYPES.PAGO && (
-                            <div className="pt-4 border-t border-gray-100">
-                              <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
-                                <CreditCardIcon className="h-4 w-4 mr-2 text-blue-600" />
-                                Método de Pago
-                              </h3>
-                              {errors.payment_method && (
-                                <p className="mb-3 text-xs text-red-600 flex items-center">
-                                  <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
-                                  {errors.payment_method}
-                                </p>
-                              )}
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {paymentMethods.map((method) => {
-                                  const Icon = method.icon
-                                  return (
-                                    <button
-                                      key={method.value}
-                                      type="button"
-                                      onClick={() => {
-                                        setFormData((prev) => ({ ...prev, payment_method: method.value }))
-                                        if (errors.payment_method)
-                                          setErrors((prev) => ({ ...prev, payment_method: "" }))
-                                      }}
-                                      className={`p-3 rounded-lg border-2 transition-all text-left ${
-                                        formData.payment_method === method.value
-                                          ? "border-blue-500 bg-blue-50 shadow-sm"
-                                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                                      }`}
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <div
-                                          className={`flex-shrink-0 p-2 rounded-lg bg-gradient-to-br ${method.color}`}
-                                        >
-                                          <Icon className="h-4 w-4 text-white" />
-                                        </div>
-                                        <p className="font-medium text-gray-900 text-sm">{method.label}</p>
-                                      </div>
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                            </div>
-                          )}
-
                           <div className="pt-4 border-t border-gray-100">
                             <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
-                              <DocumentTextIcon className="h-4 w-4 mr-2 text-blue-600" />
+                              <DocumentIcon className="h-4 w-4 mr-2 text-blue-600" />
                               Detalles
                             </h3>
-                            <div className="space-y-4">
-                              <div>
-                                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                  Descripción <span className="text-red-500">*</span>
-                                </label>
-                                <textarea
-                                  name="description"
-                                  id="description"
-                                  value={formData.description}
-                                  onChange={handleChange}
-                                  className={`block w-full px-4 py-2.5 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none ${
-                                    errors.description
-                                      ? "border-red-300 bg-red-50"
-                                      : "border-gray-300 hover:border-gray-400 bg-white"
-                                  }`}
-                                  placeholder="Ej: Pago de factura #123"
-                                  rows="3"
-                                />
-                                {errors.description && (
-                                  <p className="mt-1.5 text-xs text-red-600 flex items-center">
-                                    <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1" />
-                                    {errors.description}
-                                  </p>
-                                )}
-                              </div>
-
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                               <div>
                                 <label htmlFor="reference" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                  Referencia (Opcional)
+                                  Referencia
                                 </label>
                                 <input
                                   type="text"
@@ -513,7 +502,22 @@ const AccountTransactionForm = ({ customer, onClose, onSuccess }) => {
                                   value={formData.reference}
                                   onChange={handleChange}
                                   className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
-                                  placeholder="Ej: Número de comprobante"
+                                  placeholder="Ej: Referencia del pago"
+                                />
+                              </div>
+
+                              <div>
+                                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                  Descripción
+                                </label>
+                                <input
+                                  type="text"
+                                  name="description"
+                                  id="description"
+                                  value={formData.description}
+                                  onChange={handleChange}
+                                  className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 bg-white"
+                                  placeholder="Descripción de la transacción"
                                 />
                               </div>
                             </div>
