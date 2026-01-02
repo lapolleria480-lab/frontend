@@ -6,31 +6,34 @@ import { clearCacheForUrl } from "../config/api" // Import the cache clearing fu
 export const useCashStore = create(
   persist(
     (set, get) => ({
-      // Estado actual de la caja
       currentCash: {
         id: null,
         openingDate: null,
         openingAmount: 0,
-        currentAmount: 0, // Solo efectivo físico
-        expectedAmount: 0, // Solo efectivo físico esperado
+        efectivoFisico: 0, // Solo efectivo que está físicamente en la caja
+        totalGeneralCaja: 0,
         isOpen: false,
         openedBy: null,
-        lastMovement: null,
-        // CORREGIDO: Separación clara por método de pago (SIN cuenta corriente)
-        salesCash: 0, // Solo ventas en efectivo (afecta caja física)
-        salesCard: 0, // Solo ventas con tarjeta (NO afecta caja física)
-        salesTransfer: 0, // Solo transferencias (NO afecta caja física)
-        totalSales: 0, // Número de ventas
-        // CORREGIDO: Separar depósitos de pagos cuenta corriente POR MÉTODO
-        deposits: 0, // Solo depósitos normales (afecta caja física)
-        pagosCuentaCorrienteEfectivo: 0, // NUEVO: Pagos cta cte en efectivo (afecta caja física)
-        pagosCuentaCorrienteTarjeta: 0, // NUEVO: Pagos cta cte con tarjeta (NO afecta caja física)
-        pagosCuentaCorrienteTransferencia: 0, // NUEVO: Pagos cta cte por transferencia (NO afecta caja física)
-        // NUEVO: Total general de todos los métodos procesados
-        totalGeneralAmount: 0, // Suma de efectivo + tarjeta + transferencia + pagos cta cte
+
+        // Totales del día (simplificados)
+        totalIngresosDia: 0, // TODO lo que entró hoy
+        totalEgresosDia: 0, // TODO lo que salió hoy
+        gananciaNeta: 0, // Ingresos - Egresos
+
+        // Desglose para referencia
+        ventasEfectivo: 0,
+        ventasTarjeta: 0,
+        ventasTransferencia: 0,
+        totalVentas: 0,
+        pagosCuentaCorriente: 0,
+        depositos: 0,
+        gastos: 0,
+        retiros: 0,
+        cancelaciones: 0,
+        cantidadVentas: 0,
       },
 
-      // Movimientos de caja (solo sesión actual, sin ventas cuenta corriente)
+      // Movimientos de caja
       cashMovements: [],
 
       // Historial de cierres
@@ -62,7 +65,6 @@ export const useCashStore = create(
       setError: (error) => set({ error }),
       clearError: () => set({ error: null }),
 
-      // CORREGIDO: Obtener estado actual CON pagos cuenta corriente separados por método
       fetchCurrentStatus: async () => {
         const state = get()
         const now = Date.now()
@@ -83,32 +85,31 @@ export const useCashStore = create(
             const movements = Array.isArray(response.data.movements) ? response.data.movements : []
             const settings = response.data.settings || {}
 
-            // CORREGIDO: Usar los datos separados por método de pago del backend
             const newCashState = {
               id: sessionData.id || null,
               openingDate: sessionData.opening_date || null,
               openingAmount: Number(sessionData.opening_amount || 0),
-              // CRÍTICO: currentAmount es SOLO efectivo físico
-              currentAmount: Number(sessionData.calculated_amount || 0),
-              expectedAmount: Number(sessionData.calculated_amount || 0),
+              efectivoFisico: Number(sessionData.efectivo_fisico || 0),
+              totalGeneralCaja: Number(sessionData.total_general_caja || 0),
               isOpen: Boolean(sessionData.status === "open"),
               openedBy: sessionData.opened_by_name || null,
-              lastMovement: sessionData.lastMovement || null,
 
-              // CORREGIDO: Separación clara por método de pago (SIN cuenta corriente)
-              salesCash: Number(sessionData.sales_cash || 0), // Solo efectivo (SÍ afecta caja)
-              salesCard: Number(sessionData.sales_card || 0), // Solo tarjeta (NO afecta caja)
-              salesTransfer: Number(sessionData.sales_transfer || 0), // Solo transferencias (NO afecta caja)
-              totalSales: Number(sessionData.total_sales || 0),
+              // Totales simplificados
+              totalIngresosDia: Number(sessionData.total_ingresos_dia || 0),
+              totalEgresosDia: Number(sessionData.total_egresos_dia || 0),
+              gananciaNeta: Number(sessionData.ganancia_neta_dia || 0),
 
-              // CORREGIDO: Separar depósitos de pagos cuenta corriente POR MÉTODO
-              deposits: Number(sessionData.deposits || 0), // Solo depósitos normales
-              pagosCuentaCorrienteEfectivo: Number(sessionData.pagos_cuenta_corriente_efectivo || 0), // Pagos cta cte en efectivo
-              pagosCuentaCorrienteTarjeta: Number(sessionData.pagos_cuenta_corriente_tarjeta || 0), // Pagos cta cte con tarjeta
-              pagosCuentaCorrienteTransferencia: Number(sessionData.pagos_cuenta_corriente_transferencia || 0), // Pagos cta cte por transferencia
-
-              // NUEVO: Total general de todos los métodos procesados
-              totalGeneralAmount: Number(sessionData.total_general_amount || 0),
+              // Desglose
+              ventasEfectivo: Number(sessionData.ventas_efectivo || 0),
+              ventasTarjeta: Number(sessionData.ventas_tarjeta || 0),
+              ventasTransferencia: Number(sessionData.ventas_transferencia || 0),
+              totalVentas: Number(sessionData.total_ventas || 0),
+              pagosCuentaCorriente: Number(sessionData.pagos_cuenta_corriente || 0),
+              depositos: Number(sessionData.depositos || 0),
+              gastos: Number(sessionData.gastos || 0),
+              retiros: Number(sessionData.retiros || 0),
+              cancelaciones: Number(sessionData.cancelaciones || 0),
+              cantidadVentas: Number(sessionData.cantidad_ventas || 0),
             }
 
             set({
@@ -126,17 +127,11 @@ export const useCashStore = create(
               error: null,
             })
 
-            console.log("✅ Estado actualizado correctamente (PAGOS CTA CTE SEPARADOS POR MÉTODO)")
-            console.log("💰 LÓGICA CONTABLE APLICADA:")
-            console.log("  - Efectivo físico en caja:", newCashState.currentAmount)
-            console.log("  - Ventas efectivo (afecta caja):", newCashState.salesCash)
-            console.log("  - Ventas tarjeta (NO afecta caja):", newCashState.salesCard)
-            console.log("  - Ventas transferencia (NO afecta caja):", newCashState.salesTransfer)
-            console.log("  - Depósitos normales (afecta caja):", newCashState.deposits)
-            console.log("  - Pagos cta cte EFECTIVO (afecta caja):", newCashState.pagosCuentaCorrienteEfectivo)
-            console.log("  - Pagos cta cte TARJETA (NO afecta caja):", newCashState.pagosCuentaCorrienteTarjeta)
-            console.log("  - Pagos cta cte TRANSFERENCIA (NO afecta caja):", newCashState.pagosCuentaCorrienteTransferencia)
-            console.log("  - Total general:", newCashState.totalGeneralAmount)
+            console.log("✅ Estado actualizado (SIMPLIFICADO):")
+            console.log("💰 Total Ingresos del Día:", newCashState.totalIngresosDia)
+            console.log("💵 Efectivo en Caja:", newCashState.efectivoFisico)
+            console.log("💼 Total General de Caja:", newCashState.totalGeneralCaja)
+            console.log("✅ Ganancia Neta:", newCashState.gananciaNeta)
 
             return newCashState
           } else {
@@ -159,7 +154,7 @@ export const useCashStore = create(
         try {
           const response = await cashService.openCash(openingAmount, notes)
           if (response && response.success) {
-            clearCacheForUrl('/cash/status'); // Invalidate cache for status
+            clearCacheForUrl("/cash/status")
             await get().fetchCurrentStatus()
           }
           return response
@@ -172,11 +167,9 @@ export const useCashStore = create(
         }
       },
 
-      // CORREGIDO: Cerrar caja con lógica contable correcta SIN cuenta corriente
       closeCash: async (countData, notes = "") => {
         set({ loading: true, error: null })
         try {
-          // Calcular monto físico contado si se proporciona
           let physicalCount = null
           if (countData && (countData.bills || countData.coins)) {
             physicalCount = get().calculateCountedAmount(countData)
@@ -188,7 +181,7 @@ export const useCashStore = create(
 
           if (response && response.success) {
             set({ cashMovements: [] })
-            clearCacheForUrl('/cash/status'); // Invalidate cache for status
+            clearCacheForUrl("/cash/status")
             await get().fetchCurrentStatus()
           }
           return response
@@ -217,7 +210,7 @@ export const useCashStore = create(
               cashMovements: [response.data, ...state.cashMovements],
               loading: false,
             }))
-            clearCacheForUrl('/cash/status'); // Invalidate cache for status
+            clearCacheForUrl("/cash/status")
             await get().fetchCurrentStatus()
           }
           return response
@@ -305,7 +298,7 @@ export const useCashStore = create(
         }
       },
 
-      // CORREGIDO: Cálculo de arqueo físico
+      // Cálculo de arqueo físico
       calculateCountedAmount: (countData) => {
         const billsTotal = Object.entries(countData.bills || {}).reduce(
           (sum, [denomination, quantity]) => sum + Number.parseInt(denomination) * (Number.parseInt(quantity) || 0),
@@ -320,105 +313,61 @@ export const useCashStore = create(
         return billsTotal + coinsTotal
       },
 
-      // CORREGIDO: Estadísticas del día con pagos cuenta corriente separados por método y cancelaciones
-      getTodayStats: () => {
+      getClosingSummary: () => {
         const state = get()
-        const movements = state.cashMovements
-
-        // CRÍTICO: Solo contar movimientos que afectan el efectivo físico
-        const cashSales = movements
-          .filter((m) => m.type === "sale" && m.payment_method === "efectivo")
-          .reduce((sum, m) => sum + Number.parseFloat(m.amount || 0), 0)
-
-        const expenses = movements
-          .filter((m) => m.type === "expense")
-          .reduce((sum, m) => sum + Math.abs(Number.parseFloat(m.amount || 0)), 0)
-
-        const withdrawals = movements
-          .filter((m) => m.type === "withdrawal")
-          .reduce((sum, m) => sum + Math.abs(Number.parseFloat(m.amount || 0)), 0)
-
-        // CORREGIDO: Separar depósitos normales de pagos cuenta corriente
-        const deposits = movements
-          .filter((m) => m.type === "deposit" && !(
-            m.description && (
-              m.description.toLowerCase().includes("cuenta corriente") ||
-              m.description.toLowerCase().includes("pago cuenta") ||
-              m.description.toLowerCase().includes("cta cte") ||
-              m.description.toLowerCase().includes("cta. cte")
-            )
-          ))
-          .reduce((sum, m) => sum + Number.parseFloat(m.amount || 0), 0)
-
-        // CORREGIDO: Separar pagos cuenta corriente por método de pago
-        const pagosCuentaCorrienteEfectivo = movements
-          .filter((m) => m.type === "deposit" && 
-            m.description && (
-              m.description.toLowerCase().includes("cuenta corriente") ||
-              m.description.toLowerCase().includes("pago cuenta") ||
-              m.description.toLowerCase().includes("cta cte") ||
-              m.description.toLowerCase().includes("cta. cte")
-            ) && 
-            m.payment_method === "efectivo"
-          )
-          .reduce((sum, m) => sum + Number.parseFloat(m.amount || 0), 0)
-
-        const pagosCuentaCorrienteTarjeta = movements
-          .filter((m) => m.type === "deposit" && 
-            m.description && (
-              m.description.toLowerCase().includes("cuenta corriente") ||
-              m.description.toLowerCase().includes("pago cuenta") ||
-              m.description.toLowerCase().includes("cta cte") ||
-              m.description.toLowerCase().includes("cta. cte")
-            ) && 
-            (m.payment_method === "tarjeta_credito" || m.payment_method === "tarjeta_debito" || m.payment_method === "tarjeta")
-          )
-          .reduce((sum, m) => sum + Number.parseFloat(m.amount || 0), 0)
-
-        const pagosCuentaCorrienteTransferencia = movements
-          .filter((m) => m.type === "deposit" && 
-            m.description && (
-              m.description.toLowerCase().includes("cuenta corriente") ||
-              m.description.toLowerCase().includes("pago cuenta") ||
-              m.description.toLowerCase().includes("cta cte") ||
-              m.description.toLowerCase().includes("cta. cte")
-            ) && 
-            (m.payment_method === "transferencia" || m.payment_method === "transfer")
-          )
-          .reduce((sum, m) => sum + Number.parseFloat(m.amount || 0), 0)
-
-        // NUEVO: Calcular cancelaciones del día
-        const cancellations = movements
-          .filter((m) => m.type === "cancellation")
-          .reduce((sum, m) => sum + Math.abs(Number.parseFloat(m.amount || 0)), 0)
-
-        // CRÍTICO: netAmount incluye SOLO efectivo físico
-        const netAmount = state.currentCash.openingAmount + cashSales + deposits + pagosCuentaCorrienteEfectivo - expenses - withdrawals
 
         return {
-          sales: cashSales, // Solo ventas en efectivo
-          expenses,
-          withdrawals,
-          deposits, // Solo depósitos normales
-          pagosCuentaCorrienteEfectivo, // NUEVO: Pagos cta cte en efectivo
-          pagosCuentaCorrienteTarjeta, // NUEVO: Pagos cta cte con tarjeta
-          pagosCuentaCorrienteTransferencia, // NUEVO: Pagos cta cte por transferencia
-          cancellations, // NUEVO: Total de cancelaciones del día
-          totalMovements: movements.length,
-          netAmount, // Solo efectivo físico
+          efectivoFisico: state.currentCash.efectivoFisico,
+          totalGeneralCaja: state.currentCash.totalGeneralCaja,
+          totalIngresos: state.currentCash.totalIngresosDia,
+          totalEgresos: state.currentCash.totalEgresosDia,
+          gananciaNeta: state.currentCash.gananciaNeta,
+
+          // Desglose detallado
+          desglose: {
+            ventasEfectivo: state.currentCash.ventasEfectivo,
+            ventasTarjeta: state.currentCash.ventasTarjeta,
+            ventasTransferencia: state.currentCash.ventasTransferencia,
+            pagosCuentaCorriente: state.currentCash.pagosCuentaCorriente,
+            depositos: state.currentCash.depositos,
+            gastos: state.currentCash.gastos,
+            retiros: state.currentCash.retiros,
+            cancelaciones: state.currentCash.cancelaciones,
+          },
+
+          openingAmount: state.currentCash.openingAmount,
+          cantidadVentas: state.currentCash.cantidadVentas,
         }
       },
 
-      // Actualizar configuración
+      // Configuración
+      fetchSettings: async () => {
+        try {
+          const response = await cashService.getSettings()
+          if (response && response.success) {
+            set({
+              settings: {
+                minCashAmount: Number(response.data.min_cash_amount || 2000.0),
+                maxCashAmount: Number(response.data.max_cash_amount || 20000.0),
+                autoCloseTime: response.data.auto_close_time || "22:00",
+                requireCountForClose: Boolean(response.data.require_count_for_close ?? true),
+                allowNegativeCash: Boolean(response.data.allow_negative_cash ?? false),
+              },
+            })
+          }
+          return response
+        } catch (error) {
+          console.error("Error fetching settings:", error)
+          throw error
+        }
+      },
+
       updateSettings: async (newSettings) => {
         set({ loading: true, error: null })
         try {
           const response = await cashService.updateSettings(newSettings)
           if (response && response.success) {
-            set((state) => ({
-              settings: { ...state.settings, ...response.data },
-              loading: false,
-            }))
+            await get().fetchSettings()
           }
           return response
         } catch (error) {
@@ -427,90 +376,6 @@ export const useCashStore = create(
             loading: false,
           })
           throw error
-        }
-      },
-
-      // NUEVO: Validar que la caja esté abierta (para usar en otros stores)
-      validateCashOpen: () => {
-        const state = get()
-        return state.currentCash.isOpen
-      },
-
-      // CORREGIDO: Obtener resumen contable para cierre CON pagos cuenta corriente separados
-      getClosingSummary: () => {
-        const state = get()
-        const todayStats = get().getTodayStats()
-
-        return {
-          // Efectivo físico
-          physicalCash: {
-            opening: state.currentCash.openingAmount,
-            salesCash: state.currentCash.salesCash,
-            deposits: todayStats.deposits, // Solo depósitos normales
-            pagosCuentaCorrienteEfectivo: state.currentCash.pagosCuentaCorrienteEfectivo, // Solo pagos cta cte en efectivo
-            expenses: todayStats.expenses,
-            withdrawals: todayStats.withdrawals,
-            expected: state.currentCash.currentAmount,
-          },
-          // Otros métodos (NO afectan efectivo físico)
-          otherMethods: {
-            salesCard: state.currentCash.salesCard,
-            salesTransfer: state.currentCash.salesTransfer,
-            pagosCuentaCorrienteTarjeta: state.currentCash.pagosCuentaCorrienteTarjeta, // NUEVO: Pagos cta cte con tarjeta
-            pagosCuentaCorrienteTransferencia: state.currentCash.pagosCuentaCorrienteTransferencia, // NUEVO: Pagos cta cte por transferencia
-            total: state.currentCash.salesCard + state.currentCash.salesTransfer + state.currentCash.pagosCuentaCorrienteTarjeta + state.currentCash.pagosCuentaCorrienteTransferencia,
-          },
-          // Totales generales
-          totals: {
-            totalSales: state.currentCash.totalSales,
-            totalGeneralAmount: state.currentCash.totalGeneralAmount, // NUEVO: Total general
-            physicalCashExpected: state.currentCash.currentAmount,
-            // NUEVO: Total de pagos cuenta corriente (todos los métodos)
-            totalPagosCuentaCorriente: state.currentCash.pagosCuentaCorrienteEfectivo + state.currentCash.pagosCuentaCorrienteTarjeta + state.currentCash.pagosCuentaCorrienteTransferencia,
-            // NUEVO: Total de cancelaciones
-            totalCancellations: todayStats.cancellations,
-          },
-        }
-      },
-
-      // NUEVO: Obtener información detallada de pagos cuenta corriente
-      getPagosCuentaCorrienteDetails: () => {
-        const state = get()
-        const totalPagos = state.currentCash.pagosCuentaCorrienteEfectivo + state.currentCash.pagosCuentaCorrienteTarjeta + state.currentCash.pagosCuentaCorrienteTransferencia
-        
-        if (totalPagos === 0) {
-          return {
-            total: 0,
-            hasPayments: false,
-            affectsPhysicalCash: false,
-            status: "Sin pagos"
-          }
-        }
-
-        const efectivo = state.currentCash.pagosCuentaCorrienteEfectivo
-        const otros = state.currentCash.pagosCuentaCorrienteTarjeta + state.currentCash.pagosCuentaCorrienteTransferencia
-
-        let status = ""
-        let affectsPhysicalCash = false
-
-        if (efectivo > 0 && otros > 0) {
-          status = "Mixto: efectivo y otros métodos"
-          affectsPhysicalCash = "partial"
-        } else if (efectivo > 0) {
-          status = "Solo efectivo"
-          affectsPhysicalCash = true
-        } else {
-          status = "Solo otros métodos"
-          affectsPhysicalCash = false
-        }
-
-        return {
-          total: totalPagos,
-          hasPayments: true,
-          efectivo,
-          otros,
-          status,
-          affectsPhysicalCash
         }
       },
     }),

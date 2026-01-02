@@ -8,22 +8,19 @@ import {
   BanknotesIcon,
   CreditCardIcon,
   ArrowsRightLeftIcon,
-  PlusIcon,
-  MinusIcon,
   ClockIcon,
   UserIcon,
-  ChartBarIcon,
-  ReceiptPercentIcon,
   CurrencyDollarIcon,
-  ExclamationTriangleIcon,
+  PlusIcon,
+  MinusIcon,
+  ChartBarIcon,
   XCircleIcon,
+  ReceiptPercentIcon,
+  ArrowTrendingUpIcon,
 } from "@heroicons/react/24/outline"
 
 const CashSummary = () => {
-  const { currentCash, fetchCurrentStatus, getTodayStats, getClosingSummary, getPagosCuentaCorrienteDetails, loading } = useCashStore()
-  const todayStats = getTodayStats()
-  const closingSummary = getClosingSummary()
-  const pagosCuentaCorrienteDetails = getPagosCuentaCorrienteDetails()
+  const { currentCash, fetchCurrentStatus, loading } = useCashStore()
 
   useEffect(() => {
     fetchCurrentStatus()
@@ -48,25 +45,9 @@ const CashSummary = () => {
     )
   }
 
-  // CORREGIDO: Función para renderizar el indicador de impacto en efectivo físico
-  const renderCashImpactIndicator = (affectsPhysicalCash) => {
-    if (affectsPhysicalCash === "partial") {
-      return (
-        <div className="flex items-center text-xs">
-          <ExclamationTriangleIcon className="h-3 w-3 mr-1 text-yellow-600" />
-          <span className="text-yellow-600">Parcialmente afecta efectivo físico</span>
-        </div>
-      )
-    } else if (affectsPhysicalCash === true) {
-      return <dd className="text-xs text-green-600">✓ Afecta efectivo físico</dd>
-    } else {
-      return <dd className="text-xs text-gray-500">✗ No afecta efectivo físico</dd>
-    }
-  }
-
   return (
     <div className="space-y-6">
-      {/* CORREGIDO: Información de la sesión con total general */}
+      {/* Información de la sesión */}
       <Card>
         <Card.Header>
           <h3 className="text-lg font-medium text-gray-900 flex items-center">
@@ -75,7 +56,7 @@ const CashSummary = () => {
           </h3>
         </Card.Header>
         <Card.Body>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <p className="text-sm text-gray-600">Fecha de apertura</p>
               <p className="font-semibold">{formatDateTime(currentCash.openingDate)}</p>
@@ -88,322 +69,236 @@ const CashSummary = () => {
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Efectivo físico actual</p>
-              <p className="font-bold text-lg text-blue-600">{formatCurrency(currentCash.currentAmount)}</p>
-              <p className="text-xs text-gray-500">Solo efectivo físico</p>
+              <p className="text-sm text-gray-600">Monto inicial</p>
+              <p className="font-bold text-lg text-gray-700">{formatCurrency(currentCash.openingAmount)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total general recibido</p>
-              <p className="font-bold text-lg text-green-600">{formatCurrency(currentCash.totalGeneralAmount)}</p>
-              <p className="text-xs text-gray-500">Todos los métodos</p>
+              <p className="text-sm text-gray-600">Ventas procesadas</p>
+              <p className="font-bold text-lg text-indigo-600">{currentCash.cantidadVentas}</p>
             </div>
           </div>
         </Card.Body>
       </Card>
 
-      {/* CORREGIDO: Ventas separadas claramente por método de pago (SIN cuenta corriente) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Total Ingresos del Día */}
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
           <Card.Body>
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <BanknotesIcon className="h-8 w-8 text-green-600" />
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center text-green-700 mb-2">
+                  <ArrowTrendingUpIcon className="h-5 w-5 mr-2" />
+                  <span className="text-sm font-medium">Total Ingresos del Día</span>
+                </div>
+                <p className="text-3xl font-bold text-green-900 mb-1">{formatCurrency(currentCash.totalIngresosDia)}</p>
+                <p className="text-xs text-green-700">Ventas + Pagos cta cte + Depósitos</p>
               </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Ventas en Efectivo</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{formatCurrency(currentCash.salesCash)}</dd>
-                  <dd className="text-xs text-green-600">✓ Afecta efectivo físico</dd>
-                </dl>
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                  <PlusIcon className="h-6 w-6 text-white" />
+                </div>
               </div>
             </div>
           </Card.Body>
         </Card>
 
-        <Card>
+        {/* Efectivo en Caja Física */}
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
           <Card.Body>
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <CreditCardIcon className="h-8 w-8 text-blue-600" />
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center text-blue-700 mb-2">
+                  <BanknotesIcon className="h-5 w-5 mr-2" />
+                  <span className="text-sm font-medium">Efectivo en Caja</span>
+                </div>
+                <p className="text-3xl font-bold text-blue-900 mb-1">{formatCurrency(currentCash.efectivoFisico)}</p>
+                <p className="text-xs text-blue-700">Dinero físico disponible</p>
               </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Ventas con Tarjeta</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{formatCurrency(currentCash.salesCard)}</dd>
-                  <dd className="text-xs text-gray-500">✗ No afecta efectivo físico</dd>
-                </dl>
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                  <CurrencyDollarIcon className="h-6 w-6 text-white" />
+                </div>
               </div>
             </div>
           </Card.Body>
         </Card>
 
-        <Card>
+        {/* Ganancia Neta del Día */}
+        <Card
+          className={`bg-gradient-to-br ${currentCash.gananciaNeta >= 0 ? "from-purple-50 to-violet-50 border-purple-200" : "from-red-50 to-rose-50 border-red-200"}`}
+        >
           <Card.Body>
-            <div className="flex items-center">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div
+                  className={`flex items-center mb-2 ${currentCash.gananciaNeta >= 0 ? "text-purple-700" : "text-red-700"}`}
+                >
+                  <ChartBarIcon className="h-5 w-5 mr-2" />
+                  <span className="text-sm font-medium">Ganancia Neta</span>
+                </div>
+                <p
+                  className={`text-3xl font-bold mb-1 ${currentCash.gananciaNeta >= 0 ? "text-purple-900" : "text-red-900"}`}
+                >
+                  {formatCurrency(currentCash.gananciaNeta)}
+                </p>
+                <p className={`text-xs ${currentCash.gananciaNeta >= 0 ? "text-purple-700" : "text-red-700"}`}>
+                  Ingresos - Gastos - Retiros
+                </p>
+              </div>
               <div className="flex-shrink-0">
-                <ArrowsRightLeftIcon className="h-8 w-8 text-purple-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Transferencias</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{formatCurrency(currentCash.salesTransfer)}</dd>
-                  <dd className="text-xs text-gray-500">✗ No afecta efectivo físico</dd>
-                </dl>
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
-
-        {/* CORREGIDO: Card de pagos cuenta corriente con indicador inteligente */}
-        <Card>
-          <Card.Body>
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <ReceiptPercentIcon className="h-8 w-8 text-indigo-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Pagos Cta. Cte.</dt>
-                  <dd className="text-lg font-semibold text-gray-900">
-                    {formatCurrency(pagosCuentaCorrienteDetails.total)}
-                  </dd>
-                  {pagosCuentaCorrienteDetails.hasPayments ? (
-                    <div className="space-y-1">
-                      {renderCashImpactIndicator(pagosCuentaCorrienteDetails.affectsPhysicalCash)}
-                      {pagosCuentaCorrienteDetails.affectsPhysicalCash === "partial" && (
-                        <div className="text-xs text-gray-600">
-                          <div>Efectivo: {formatCurrency(pagosCuentaCorrienteDetails.efectivo)}</div>
-                          <div>Otros: {formatCurrency(pagosCuentaCorrienteDetails.otros)}</div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <dd className="text-xs text-gray-400">Sin pagos registrados</dd>
-                  )}
-                </dl>
+                <div
+                  className={`w-12 h-12 rounded-lg flex items-center justify-center ${currentCash.gananciaNeta >= 0 ? "bg-purple-500" : "bg-red-500"}`}
+                >
+                  <ChartBarIcon className="h-6 w-6 text-white" />
+                </div>
               </div>
             </div>
           </Card.Body>
         </Card>
       </div>
 
-      {/* Estadísticas del día - Solo movimientos que afectan efectivo físico */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <Card>
-          <Card.Body>
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <ChartBarIcon className="h-8 w-8 text-indigo-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Ventas</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{currentCash.totalSales}</dd>
-                  <dd className="text-xs text-gray-500">Procesadas en caja</dd>
-                </dl>
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
-
-        <Card>
-          <Card.Body>
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <PlusIcon className="h-8 w-8 text-green-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Ingresos Adicionales</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{formatCurrency(todayStats.deposits)}</dd>
-                  <dd className="text-xs text-green-600">✓ Afecta efectivo físico</dd>
-                </dl>
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
-
-        <Card>
-          <Card.Body>
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <MinusIcon className="h-8 w-8 text-red-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Gastos</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{formatCurrency(todayStats.expenses)}</dd>
-                  <dd className="text-xs text-red-600">✓ Afecta efectivo físico</dd>
-                </dl>
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
-
-        <Card>
-          <Card.Body>
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <MinusIcon className="h-8 w-8 text-orange-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Retiros</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{formatCurrency(todayStats.withdrawals)}</dd>
-                  <dd className="text-xs text-red-600">✓ Afecta efectivo físico</dd>
-                </dl>
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
-
-        {/* NUEVO: Card de cancelaciones */}
-        <Card>
-          <Card.Body>
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <XCircleIcon className="h-8 w-8 text-red-500" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Cancelaciones</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{formatCurrency(todayStats.cancellations)}</dd>
-                  <dd className="text-xs text-red-500">Ventas canceladas hoy</dd>
-                </dl>
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
-      </div>
-
-      {/* CORREGIDO: Resumen financiero con separación correcta de pagos cuenta corriente */}
       <Card>
         <Card.Header>
-          <h3 className="text-lg font-medium text-gray-900">Resumen Financiero del Día</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Separación clara entre efectivo físico y otros métodos de pago
-          </p>
+          <h3 className="text-lg font-medium text-gray-900">Desglose de Ventas por Método de Pago</h3>
+          <p className="text-sm text-gray-500 mt-1">Total de ventas: {formatCurrency(currentCash.totalVentas)}</p>
         </Card.Header>
         <Card.Body>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* EFECTIVO FÍSICO - Lo que está realmente en la caja */}
-            <div className="bg-green-50 p-6 rounded-lg border border-green-200">
-              <h4 className="font-medium text-green-900 mb-4 flex items-center">
-                <BanknotesIcon className="h-5 w-5 mr-2" />
-                Efectivo Físico en Caja
-              </h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-green-700">Monto inicial:</span>
-                  <span className="font-semibold">
-                    {formatCurrency(closingSummary.physicalCash.opening)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-green-700">Ventas en efectivo:</span>
-                  <span className="font-semibold text-green-600">
-                    +{formatCurrency(closingSummary.physicalCash.salesCash)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-green-700">Pagos cta cte (efectivo):</span>
-                  <span className="font-semibold text-green-600">
-                    +{formatCurrency(closingSummary.physicalCash.pagosCuentaCorrienteEfectivo)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-green-700">Ingresos adicionales:</span>
-                  <span className="font-semibold text-green-600">
-                    +{formatCurrency(closingSummary.physicalCash.deposits)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-green-700">Gastos y retiros:</span>
-                  <span className="font-semibold text-red-600">
-                    -{formatCurrency(closingSummary.physicalCash.expenses + closingSummary.physicalCash.withdrawals)}
-                  </span>
-                </div>
-                {/* NUEVO: Mostrar cancelaciones si hay */}
-                {closingSummary.totals.totalCancellations > 0 && (
-                  <div className="flex justify-between items-center py-1">
-                    <span className="text-green-700">Cancelaciones:</span>
-                    <span className="font-semibold text-red-600">
-                      -{formatCurrency(closingSummary.totals.totalCancellations)}
-                    </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <BanknotesIcon className="h-8 w-8 text-green-600 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-green-800">Efectivo</p>
+                    <p className="text-xs text-green-600">Afecta caja física</p>
                   </div>
-                )}
-                <div className="flex justify-between items-center py-3 bg-green-100 px-3 rounded-lg border-t border-green-300">
-                  <span className="text-lg font-medium text-green-900">Efectivo físico esperado:</span>
-                  <span className="text-xl font-bold text-green-900">
-                    {formatCurrency(closingSummary.physicalCash.expected)}
-                  </span>
                 </div>
+                <p className="text-xl font-bold text-green-900">{formatCurrency(currentCash.ventasEfectivo)}</p>
               </div>
             </div>
 
-            {/* OTROS MÉTODOS - No afectan el efectivo físico */}
-            <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-              <h4 className="font-medium text-blue-900 mb-4 flex items-center">
-                <CreditCardIcon className="h-5 w-5 mr-2" />
-                Otros Métodos de Pago
-              </h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-blue-700">Ventas con tarjeta:</span>
-                  <span className="font-semibold">{formatCurrency(closingSummary.otherMethods.salesCard)}</span>
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <CreditCardIcon className="h-8 w-8 text-blue-600 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">Tarjeta</p>
+                    <p className="text-xs text-blue-600">No afecta caja física</p>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-blue-700">Transferencias:</span>
-                  <span className="font-semibold">{formatCurrency(closingSummary.otherMethods.salesTransfer)}</span>
+                <p className="text-xl font-bold text-blue-900">{formatCurrency(currentCash.ventasTarjeta)}</p>
+              </div>
+            </div>
+
+            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <ArrowsRightLeftIcon className="h-8 w-8 text-purple-600 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-purple-800">Transferencia</p>
+                    <p className="text-xs text-purple-600">No afecta caja física</p>
+                  </div>
                 </div>
-                {/* NUEVO: Pagos cuenta corriente separados por método */}
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-blue-700">Pagos cta cte (tarjeta):</span>
-                  <span className="font-semibold">{formatCurrency(closingSummary.otherMethods.pagosCuentaCorrienteTarjeta)}</span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-blue-700">Pagos cta cte (transferencia):</span>
-                  <span className="font-semibold">{formatCurrency(closingSummary.otherMethods.pagosCuentaCorrienteTransferencia)}</span>
-                </div>
-                <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                  <p className="text-xs text-yellow-800">
-                    <strong>Nota:</strong> Las ventas a cuenta corriente NO se procesan en caja. Solo se registran los pagos posteriores cuando el cliente paga su deuda.
-                  </p>
-                </div>
-                <div className="flex justify-between items-center py-3 bg-blue-100 px-3 rounded-lg border-t border-blue-300">
-                  <span className="text-lg font-medium text-blue-900">Total otros métodos:</span>
-                  <span className="text-xl font-bold text-blue-900">
-                    {formatCurrency(closingSummary.otherMethods.total)}
-                  </span>
-                </div>
+                <p className="text-xl font-bold text-purple-900">{formatCurrency(currentCash.ventasTransferencia)}</p>
               </div>
             </div>
           </div>
+        </Card.Body>
+      </Card>
 
-          {/* CORREGIDO: Total general de todos los métodos procesados */}
-          <div className="mt-6 bg-gradient-to-r from-gray-100 to-slate-100 p-4 rounded-lg border">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-medium text-gray-900 flex items-center">
-                <CurrencyDollarIcon className="h-5 w-5 mr-2" />
-                Total general recibido:
-              </span>
-              <span className="text-2xl font-bold text-gray-900">
-                {formatCurrency(closingSummary.totals.totalGeneralAmount)}
-              </span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Otros Ingresos */}
+        <Card>
+          <Card.Header>
+            <h3 className="text-base font-medium text-gray-900 flex items-center">
+              <PlusIcon className="h-5 w-5 mr-2 text-green-600" />
+              Otros Ingresos
+            </h3>
+          </Card.Header>
+          <Card.Body>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b">
+                <div className="flex items-center">
+                  <ReceiptPercentIcon className="h-5 w-5 text-indigo-600 mr-2" />
+                  <span className="text-sm text-gray-700">Pagos Cuenta Corriente</span>
+                </div>
+                <span className="font-semibold text-gray-900">{formatCurrency(currentCash.pagosCuentaCorriente)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <div className="flex items-center">
+                  <PlusIcon className="h-5 w-5 text-green-600 mr-2" />
+                  <span className="text-sm text-gray-700">Depósitos Adicionales</span>
+                </div>
+                <span className="font-semibold text-gray-900">{formatCurrency(currentCash.depositos)}</span>
+              </div>
             </div>
-            <div className="mt-2 text-sm text-gray-600 space-y-1">
-              <p>Incluye efectivo, tarjeta, transferencias y pagos de cuenta corriente</p>
-              {pagosCuentaCorrienteDetails.hasPayments && (
-                <p className="text-indigo-600">
-                  <strong>Pagos cuenta corriente:</strong> {formatCurrency(closingSummary.totals.totalPagosCuentaCorriente)} 
-                  ({pagosCuentaCorrienteDetails.status})
-                </p>
+          </Card.Body>
+        </Card>
+
+        {/* Egresos */}
+        <Card>
+          <Card.Header>
+            <h3 className="text-base font-medium text-gray-900 flex items-center">
+              <MinusIcon className="h-5 w-5 mr-2 text-red-600" />
+              Egresos
+            </h3>
+          </Card.Header>
+          <Card.Body>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b">
+                <div className="flex items-center">
+                  <MinusIcon className="h-5 w-5 text-orange-600 mr-2" />
+                  <span className="text-sm text-gray-700">Gastos</span>
+                </div>
+                <span className="font-semibold text-red-600">{formatCurrency(currentCash.gastos)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
+                <div className="flex items-center">
+                  <MinusIcon className="h-5 w-5 text-orange-600 mr-2" />
+                  <span className="text-sm text-gray-700">Retiros</span>
+                </div>
+                <span className="font-semibold text-red-600">{formatCurrency(currentCash.retiros)}</span>
+              </div>
+              {currentCash.cancelaciones > 0 && (
+                <div className="flex justify-between items-center py-2">
+                  <div className="flex items-center">
+                    <XCircleIcon className="h-5 w-5 text-red-500 mr-2" />
+                    <span className="text-sm text-gray-700">Cancelaciones</span>
+                  </div>
+                  <span className="font-semibold text-red-500">{formatCurrency(currentCash.cancelaciones)}</span>
+                </div>
               )}
-              {closingSummary.totals.totalCancellations > 0 && (
-                <p className="text-red-600">
-                  <strong>Cancelaciones del día:</strong> {formatCurrency(closingSummary.totals.totalCancellations)}
-                </p>
-              )}
+            </div>
+          </Card.Body>
+        </Card>
+      </div>
+
+      <Card className="bg-gradient-to-r from-slate-50 to-gray-100 border-gray-300">
+        <Card.Header>
+          <h3 className="text-lg font-medium text-gray-900">Resumen del Día</h3>
+        </Card.Header>
+        <Card.Body>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 bg-white rounded-lg border">
+              <p className="text-sm text-gray-600 mb-2">Efectivo Inicial</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(currentCash.openingAmount)}</p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg border">
+              <p className="text-sm text-gray-600 mb-2">Total Recibido Hoy</p>
+              <p className="text-2xl font-bold text-green-600">+ {formatCurrency(currentCash.totalIngresosDia)}</p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg border">
+              <p className="text-sm text-gray-600 mb-2">Total Egresos</p>
+              <p className="text-2xl font-bold text-red-600">- {formatCurrency(currentCash.totalEgresosDia)}</p>
+            </div>
+          </div>
+          <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-base font-semibold text-blue-900">Total General de Caja</p>
+                <p className="text-xs text-blue-700 mt-1">(Inicial + Total Recibido - Egresos)</p>
+              </div>
+              <p className="text-4xl font-bold text-blue-900">{formatCurrency(currentCash.totalGeneralCaja)}</p>
             </div>
           </div>
         </Card.Body>

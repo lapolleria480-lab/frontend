@@ -15,10 +15,9 @@ import {
   CalculatorIcon,
   ChartBarIcon,
   BanknotesIcon,
-  CreditCardIcon,
-  ArrowsRightLeftIcon,
-  ExclamationCircleIcon,
-  ReceiptPercentIcon,
+  CurrencyDollarIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline"
 
 const schema = yup.object({
@@ -28,7 +27,7 @@ const schema = yup.object({
 })
 
 const CashCloseForm = ({ isOpen, onClose }) => {
-  const { currentCash, closeCash, loading, getClosingSummary, fetchCurrentStatus } = useCashStore() // Agregado fetchCurrentStatus
+  const { currentCash, closeCash, loading, getClosingSummary, fetchCurrentStatus } = useCashStore()
   const { success, error } = useToast()
   const [showPhysicalCount, setShowPhysicalCount] = useState(false)
   const closingSummary = getClosingSummary()
@@ -70,15 +69,15 @@ const CashCloseForm = ({ isOpen, onClose }) => {
           success(`Caja cerrada con diferencia de ${formatCurrency(difference)}`)
         }
 
-        await fetchCurrentStatus(); // <--- AÑADIDO: Forzar la actualización del estado de la caja
-        onClose && onClose();
+        await fetchCurrentStatus()
+        onClose && onClose()
       }
     } catch (err) {
       error(err.message || "Error al cerrar la caja")
     }
   }
 
-  const expectedAmount = closingSummary.physicalCash.expected
+  const expectedAmount = closingSummary.efectivoFisico
   const countedAmount = usePhysicalCount ? physicalCount || 0 : expectedAmount
   const difference = countedAmount - expectedAmount
 
@@ -108,8 +107,8 @@ const CashCloseForm = ({ isOpen, onClose }) => {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all flex flex-col max-h-[95vh]">
-                {/* Header Fijo */}
+              <Dialog.Panel className="w-full max-w-5xl transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all flex flex-col max-h-[95vh]">
+                {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
@@ -118,7 +117,7 @@ const CashCloseForm = ({ isOpen, onClose }) => {
                       </div>
                     </div>
                     <div>
-                      <Dialog.Title as="h3" className="text-xl font-semibold text-gray-900 -ml-32">
+                      <Dialog.Title as="h3" className="text-xl font-semibold text-gray-900">
                         Cierre de Caja
                       </Dialog.Title>
                       <p className="text-sm text-gray-500 mt-1">
@@ -135,112 +134,96 @@ const CashCloseForm = ({ isOpen, onClose }) => {
                   </button>
                 </div>
 
-                {/* Contenido con Scroll */}
+                {/* Content */}
                 <div className="flex-1 overflow-y-auto">
                   <form onSubmit={handleSubmit(onSubmit)} className="p-6">
                     <div className="space-y-6">
-                      {/* CORREGIDO: Resumen con lógica contable correcta SIN cuenta corriente */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Efectivo físico - Lo que realmente está en la caja */}
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
-                          <h4 className="text-lg font-medium text-green-900 mb-4 flex items-center">
-                            <BanknotesIcon className="h-5 w-5 mr-2" />
-                            Efectivo Físico en Caja
-                          </h4>
-
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-green-700">Monto inicial:</span>
-                              <span className="font-semibold">
-                                {formatCurrency(closingSummary.physicalCash.opening)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-green-700">Ventas en efectivo:</span>
-                              <span className="font-semibold text-green-600">
-                                +{formatCurrency(closingSummary.physicalCash.salesCash)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-green-700">Pagos cuenta corriente:</span>
-                              <span className="font-semibold text-green-600">
-                                +{formatCurrency(closingSummary.physicalCash.pagosCuentaCorriente)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-green-700">Ingresos adicionales:</span>
-                              <span className="font-semibold text-green-600">
-                                +{formatCurrency(closingSummary.physicalCash.deposits)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-green-700">Gastos:</span>
-                              <span className="font-semibold text-red-600">
-                                -{formatCurrency(closingSummary.physicalCash.expenses)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-green-700">Retiros:</span>
-                              <span className="font-semibold text-red-600">
-                                -{formatCurrency(closingSummary.physicalCash.withdrawals)}
-                              </span>
-                            </div>
-                            <div className="border-t border-green-300 pt-3">
-                              <div className="flex justify-between items-center">
-                                <span className="text-lg font-medium text-green-900">Efectivo esperado:</span>
-                                <span className="text-xl font-bold text-green-900">
-                                  {formatCurrency(closingSummary.physicalCash.expected)}
-                                </span>
-                              </div>
-                            </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
+                          <div className="flex items-center text-green-700 mb-3">
+                            <ChartBarIcon className="h-5 w-5 mr-2" />
+                            <span className="text-sm font-medium">Total Ingresos del Día</span>
+                          </div>
+                          <p className="text-3xl font-bold text-green-900 mb-2">
+                            {formatCurrency(closingSummary.totalIngresos)}
+                          </p>
+                          <div className="space-y-1 text-xs text-green-700">
+                            <p>
+                              Ventas:{" "}
+                              {formatCurrency(
+                                closingSummary.desglose.ventasEfectivo +
+                                  closingSummary.desglose.ventasTarjeta +
+                                  closingSummary.desglose.ventasTransferencia,
+                              )}
+                            </p>
+                            <p>Pagos cta cte: {formatCurrency(closingSummary.desglose.pagosCuentaCorriente)}</p>
+                            <p>Depósitos: {formatCurrency(closingSummary.desglose.depositos)}</p>
                           </div>
                         </div>
 
-                        {/* Otros métodos de pago - NO afectan efectivo físico */}
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
-                          <h4 className="text-lg font-medium text-blue-900 mb-4 flex items-center">
-                            <ChartBarIcon className="h-5 w-5 mr-2" />
-                            Otros Métodos de Pago
-                          </h4>
+                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
+                          <div className="flex items-center text-blue-700 mb-3">
+                            <BanknotesIcon className="h-5 w-5 mr-2" />
+                            <span className="text-sm font-medium">Efectivo en Caja Física</span>
+                          </div>
+                          <p className="text-3xl font-bold text-blue-900 mb-2">
+                            {formatCurrency(closingSummary.efectivoFisico)}
+                          </p>
+                          <p className="text-xs text-blue-700">Solo dinero físico en caja</p>
+                        </div>
 
-                          <div className="space-y-4">
-                            <div className="bg-white p-4 rounded-lg border">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <CreditCardIcon className="h-6 w-6 text-blue-600 mr-2" />
-                                  <span className="text-blue-700">Ventas con Tarjeta</span>
-                                </div>
-                                <span className="text-lg font-bold text-blue-700">
-                                  {formatCurrency(closingSummary.otherMethods.salesCard)}
-                                </span>
-                              </div>
+                        <div
+                          className={`bg-gradient-to-br rounded-xl p-5 border ${closingSummary.gananciaNeta >= 0 ? "from-purple-50 to-violet-50 border-purple-200" : "from-red-50 to-rose-50 border-red-200"}`}
+                        >
+                          <div
+                            className={`flex items-center mb-3 ${closingSummary.gananciaNeta >= 0 ? "text-purple-700" : "text-red-700"}`}
+                          >
+                            <CurrencyDollarIcon className="h-5 w-5 mr-2" />
+                            <span className="text-sm font-medium">Ganancia Neta</span>
+                          </div>
+                          <p
+                            className={`text-3xl font-bold mb-2 ${closingSummary.gananciaNeta >= 0 ? "text-purple-900" : "text-red-900"}`}
+                          >
+                            {formatCurrency(closingSummary.gananciaNeta)}
+                          </p>
+                          <p
+                            className={`text-xs ${closingSummary.gananciaNeta >= 0 ? "text-purple-700" : "text-red-700"}`}
+                          >
+                            Ingresos - Gastos - Retiros
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Desglose detallado */}
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h4 className="font-medium text-gray-900 mb-4">Desglose Detallado</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="space-y-2">
+                            <p className="font-medium text-gray-700">Ingresos:</p>
+                            <div className="pl-3 space-y-1 text-gray-600">
+                              <p>Ventas efectivo: {formatCurrency(closingSummary.desglose.ventasEfectivo)}</p>
+                              <p>Ventas tarjeta: {formatCurrency(closingSummary.desglose.ventasTarjeta)}</p>
+                              <p>Ventas transferencia: {formatCurrency(closingSummary.desglose.ventasTransferencia)}</p>
+                              <p>
+                                Pagos cuenta corriente: {formatCurrency(closingSummary.desglose.pagosCuentaCorriente)}
+                              </p>
+                              <p>Depósitos: {formatCurrency(closingSummary.desglose.depositos)}</p>
                             </div>
-
-                            <div className="bg-white p-4 rounded-lg border">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <ArrowsRightLeftIcon className="h-6 w-6 text-purple-600 mr-2" />
-                                  <span className="text-purple-700">Transferencias</span>
-                                </div>
-                                <span className="text-lg font-bold text-purple-700">
-                                  {formatCurrency(closingSummary.otherMethods.salesTransfer)}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="border-t border-blue-300 pt-3">
-                              <div className="flex justify-between items-center">
-                                <span className="text-lg font-medium text-blue-900">Total otros métodos:</span>
-                                <span className="text-xl font-bold text-blue-900">
-                                  {formatCurrency(closingSummary.otherMethods.total)}
-                                </span>
-                              </div>
+                          </div>
+                          <div className="space-y-2">
+                            <p className="font-medium text-gray-700">Egresos:</p>
+                            <div className="pl-3 space-y-1 text-gray-600">
+                              <p>Gastos: {formatCurrency(closingSummary.desglose.gastos)}</p>
+                              <p>Retiros: {formatCurrency(closingSummary.desglose.retiros)}</p>
+                              {closingSummary.desglose.cancelaciones > 0 && (
+                                <p>Cancelaciones: {formatCurrency(closingSummary.desglose.cancelaciones)}</p>
+                              )}
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Comparación con efectivo físico (opcional) */}
+                      {/* Comparación con efectivo físico */}
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center mb-4">
                           <input
@@ -272,9 +255,6 @@ const CashCloseForm = ({ isOpen, onClose }) => {
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg font-semibold text-center bg-white"
                                 placeholder="$ 0,00"
                               />
-                              {errors.physicalCount && (
-                                <p className="mt-1 text-sm text-red-600">{errors.physicalCount.message}</p>
-                              )}
                             </div>
 
                             {/* Comparación */}
@@ -300,18 +280,32 @@ const CashCloseForm = ({ isOpen, onClose }) => {
                                           : "text-red-600"
                                     }`}
                                   >
-                                    {difference === 0 ? "Sin diferencia" : formatCurrency(difference)}
+                                    {difference === 0 ? (
+                                      <span className="flex items-center">
+                                        <CheckCircleIcon className="h-5 w-5 mr-1" />
+                                        Sin diferencia
+                                      </span>
+                                    ) : (
+                                      formatCurrency(difference)
+                                    )}
                                   </span>
                                 </div>
                               </div>
 
                               {difference !== 0 && (
-                                <div className="mt-3 p-3 bg-gray-50 rounded border">
-                                  <p className="text-xs text-gray-600">
-                                    {difference > 0
-                                      ? "Hay más efectivo del esperado. Verifica si hubo ingresos no registrados."
-                                      : "Falta efectivo. Verifica si hubo gastos o retiros no registrados."}
-                                  </p>
+                                <div
+                                  className={`mt-3 p-3 rounded border ${difference > 0 ? "bg-blue-50 border-blue-200" : "bg-red-50 border-red-200"}`}
+                                >
+                                  <div className="flex items-start">
+                                    <ExclamationTriangleIcon
+                                      className={`h-5 w-5 mr-2 flex-shrink-0 ${difference > 0 ? "text-blue-600" : "text-red-600"}`}
+                                    />
+                                    <p className={`text-xs ${difference > 0 ? "text-blue-700" : "text-red-700"}`}>
+                                      {difference > 0
+                                        ? "Hay más efectivo del esperado. Verifica si hubo ingresos no registrados."
+                                        : "Falta efectivo. Verifica si hubo gastos o retiros no registrados."}
+                                    </p>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -329,44 +323,11 @@ const CashCloseForm = ({ isOpen, onClose }) => {
                           placeholder="Observaciones sobre el cierre de caja..."
                         />
                       </div>
-
-                      {/* Resumen final */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h5 className="font-medium text-blue-900 mb-2">Resumen del cierre</h5>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="text-blue-700">Hora de apertura:</p>
-                            <p className="font-medium">{formatDateTime(currentCash.openingDate)}</p>
-                          </div>
-                          <div>
-                            <p className="text-blue-700">Total de ventas:</p>
-                            <p className="font-medium">{closingSummary.totals.totalSales}</p>
-                          </div>
-                          <div>
-                            <p className="text-blue-700">Monto inicial:</p>
-                            <p className="font-medium">{formatCurrency(currentCash.openingAmount)}</p>
-                          </div>
-                          <div>
-                            <p className="text-blue-700">Total general recibido:</p>
-                            <p className="font-medium">{formatCurrency(closingSummary.totals.totalGeneralAmount)}</p>
-                          </div>
-                          <div>
-                            <p className="text-blue-700">Efectivo físico esperado:</p>
-                            <p className="font-medium text-green-600">
-                              {formatCurrency(closingSummary.totals.physicalCashExpected)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-blue-700">Otros métodos (no físico):</p>
-                            <p className="font-medium">{formatCurrency(closingSummary.otherMethods.total)}</p>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </form>
                 </div>
 
-                {/* Footer Fijo */}
+                {/* Footer */}
                 <div className="flex gap-3 p-6 border-t border-gray-100 bg-gray-50">
                   <Button
                     type="button"
