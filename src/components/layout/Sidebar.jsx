@@ -21,7 +21,7 @@ import {
 import clsx from "clsx"
 import { useAuth } from "@/contexts/AuthContext"
 
-const navigation = [
+const navigation = [ 
   { name: "Dashboard", href: "/", icon: HomeIcon },
   { name: "Ventas", href: "/ventas", icon: ShoppingCartIcon },
   { name: "Caja", href: "/caja", icon: CurrencyDollarIcon },

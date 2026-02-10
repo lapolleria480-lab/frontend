@@ -2,16 +2,9 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useChartsStore } from "../../stores/chartsStore"
-import { formatQuantity, parseLocalDate } from "../../lib/formatters"
+import { formatQuantity, formatPeriodLabelShort, formatDateRangeSubtitle } from "../../lib/formatters"
 import LoadingSpinner from "../common/LoadingSpinner"
 import { MagnifyingGlassIcon, CalendarIcon } from "@heroicons/react/24/outline"
-
-const formatPeriodDay = (period) => {
-  if (!period) return ""
-  const date = parseLocalDate(String(period))
-  if (!date) return String(period)
-  return date.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" })
-}
 
 const SimpleChartsView = () => {
   const {
@@ -40,6 +33,10 @@ const SimpleChartsView = () => {
   useEffect(() => {
     loadProducts()
   }, [loadProducts])
+
+  useEffect(() => {
+    if (!selectedProductIds.length) fetchChartData()
+  }, [selectedProductIds.length, fetchChartData])
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -89,6 +86,18 @@ const SimpleChartsView = () => {
   const productName = singleSeries?.productName ?? selectedProduct?.name ?? ""
   const values = singleSeries?.values ?? []
   const total = values.reduce((sum, v) => sum + Number(v), 0)
+
+  const topProductsByQuantity =
+    !selectedProductIds.length && chartData?.series?.length
+      ? chartData.series
+          .map((s) => ({
+            productName: s.productName,
+            unitType: s.unitType || "unidades",
+            total: (s.values || []).reduce((sum, v) => sum + Number(v), 0),
+          }))
+          .filter((row) => row.total > 0)
+          .sort((a, b) => b.total - a.total)
+      : []
 
   return (
     <div className="space-y-6">
@@ -199,25 +208,60 @@ const SimpleChartsView = () => {
         </div>
       )}
 
-      {!selectedProductIds.length ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-600">
-            Elegí un producto arriba para ver cuánto se vendió por día en el rango de fechas.
-          </p>
-        </div>
-      ) : loading ? (
+      {loading ? (
         <div className="flex items-center justify-center min-h-48 bg-white rounded-lg border border-gray-200">
           <LoadingSpinner size="lg" />
           <span className="ml-3 text-gray-600">Cargando reporte...</span>
+        </div>
+      ) : !selectedProductIds.length ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Productos más vendidos</h3>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {formatDateRangeSubtitle(dateRange.start, dateRange.end)}
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            {topProductsByQuantity.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                No hay ventas en el período seleccionado. Cambiá el rango de fechas o consultá otro día.
+              </div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Producto
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cantidad vendida
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {topProductsByQuantity.map((row) => (
+                    <tr key={row.productName}>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                        {row.productName}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                        {formatQuantity(row.total, row.unitType)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-medium text-gray-900">
-              Ventas por día {productName ? `— ${productName}` : ""}
+              Ventas por día — {productName}
             </h3>
             <p className="text-sm text-gray-500 mt-0.5">
-              {dateRange.start} hasta {dateRange.end}
+              {formatDateRangeSubtitle(dateRange.start, dateRange.end)}
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -239,9 +283,9 @@ const SimpleChartsView = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {periodsList.map((period, i) => (
-                    <tr key={period}>
+                    <tr key={`${period}-${i}`}>
                       <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {formatPeriodDay(period)}
+                        {formatPeriodLabelShort(period)}
                       </td>
                       <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
                         {formatQuantity(values[i] ?? 0, unitType)}

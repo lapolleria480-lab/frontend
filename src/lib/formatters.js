@@ -200,16 +200,45 @@ export const isValidDate = (date) => {
 }
 
 /**
- * Parsea un string "YYYY-MM-DD" como fecha local (no UTC).
+ * Parsea un string "YYYY-MM-DD" o ISO ("YYYY-MM-DDTHH:mm:ss.sssZ") como fecha local (no UTC).
  * Evita que new Date("YYYY-MM-DD") se interprete como medianoche UTC y muestre el día anterior en zonas como Argentina.
  */
 export const parseLocalDate = (dateStr) => {
   if (!dateStr || typeof dateStr !== "string") return null
-  const parts = dateStr.trim().split("-").map(Number)
+  let dateOnly = dateStr.trim()
+  if (dateOnly.includes("T")) dateOnly = dateOnly.split("T")[0]
+  const parts = dateOnly.split("-").map(Number)
   if (parts.length < 3 || parts.some(Number.isNaN)) return null
   const [y, m, d] = parts
   const date = new Date(y, m - 1, d)
   return Number.isNaN(date.getTime()) ? null : date
+}
+
+/**
+ * Formatea un valor de período (string YYYY-MM-DD, ISO, o similar) para mostrar en UI.
+ * Nunca devuelve el string crudo tipo "2026-02-10T00:00:00.000Z"; siempre fecha legible en español.
+ */
+export const formatPeriodLabelShort = (period) => {
+  if (period == null) return ""
+  const str = String(period)
+  const match = str.match(/(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return str
+  const [, y, m, d] = match
+  const date = new Date(Number(y), Number(m) - 1, Number(d))
+  if (Number.isNaN(date.getTime())) return str
+  return date.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" })
+}
+
+/**
+ * Formatea un rango de fechas para subtítulos (ej. "10 feb 2026" o "1 feb – 10 feb 2026").
+ */
+export const formatDateRangeSubtitle = (startStr, endStr) => {
+  const start = parseLocalDate(String(startStr))
+  const end = parseLocalDate(String(endStr))
+  if (!start || !end) return `${startStr} hasta ${endStr}`
+  const same = start.getTime() === end.getTime()
+  if (same) return start.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })
+  return `${start.toLocaleDateString("es-AR", { day: "numeric", month: "short" })} – ${end.toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}`
 }
 
 // Función auxiliar para obtener fecha actual formateada
