@@ -199,6 +199,19 @@ export const isValidDate = (date) => {
   return !isNaN(dateObj.getTime())
 }
 
+/**
+ * Parsea un string "YYYY-MM-DD" como fecha local (no UTC).
+ * Evita que new Date("YYYY-MM-DD") se interprete como medianoche UTC y muestre el día anterior en zonas como Argentina.
+ */
+export const parseLocalDate = (dateStr) => {
+  if (!dateStr || typeof dateStr !== "string") return null
+  const parts = dateStr.trim().split("-").map(Number)
+  if (parts.length < 3 || parts.some(Number.isNaN)) return null
+  const [y, m, d] = parts
+  const date = new Date(y, m - 1, d)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 // Función auxiliar para obtener fecha actual formateada
 export const getCurrentDateTime = () => {
   return formatDateTime(new Date())

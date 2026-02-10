@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useChartsStore } from "../../stores/chartsStore"
-import { formatQuantity } from "../../lib/formatters"
+import { formatQuantity, parseLocalDate } from "../../lib/formatters"
 import LoadingSpinner from "../common/LoadingSpinner"
 import { MagnifyingGlassIcon, CalendarIcon } from "@heroicons/react/24/outline"
 
 const formatPeriodDay = (period) => {
   if (!period) return ""
-  const date = new Date(period)
+  const date = parseLocalDate(String(period))
+  if (!date) return String(period)
   return date.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" })
 }
 

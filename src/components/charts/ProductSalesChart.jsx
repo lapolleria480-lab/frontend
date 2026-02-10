@@ -13,7 +13,7 @@ import {
   Filler,
 } from "chart.js"
 import { useChartsStore } from "../../stores/chartsStore"
-import { formatQuantity } from "../../lib/formatters"
+import { formatQuantity, parseLocalDate } from "../../lib/formatters"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
@@ -38,7 +38,8 @@ const formatPeriodLabel = (period, groupBy) => {
   if (groupBy === "week") {
     return `Sem. ${period}`
   }
-  const date = new Date(period)
+  const date = parseLocalDate(String(period))
+  if (!date) return String(period)
   return date.toLocaleDateString("es-AR", { month: "short", day: "numeric" })
 }
 
