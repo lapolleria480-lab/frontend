@@ -37,6 +37,15 @@ export const useChartsStore = create((set, get) => ({
     get().fetchChartData()
   },
 
+  /** Solo actualiza los IDs sin disparar fetch (ej. al limpiar producto en vista Simple). */
+  setSelectedProductIdsOnly: (ids) => set({ selectedProductIds: ids }),
+
+  /** Para vista Simple: un solo producto y siempre por día. Una sola petición. */
+  setSimpleProductAndFetch: (productId) => {
+    set({ groupBy: "day", selectedProductIds: productId ? [productId] : [] })
+    if (productId) get().fetchChartData()
+  },
+
   setPeriod: (period) => {
     set({ selectedPeriod: period })
 
