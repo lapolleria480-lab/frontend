@@ -90,12 +90,22 @@ export const useChartsStore = create((set, get) => ({
   /** Actualiza período y fechas sin disparar fetch (para default "Hoy" en tab Simple). */
   setPeriodWithoutFetch: (period) => {
     const { start, end } = get().getDateRangeForPeriod(period)
-    set({ selectedPeriod: period, dateRange: { start, end } })
+    const isSingleDay = period === "today" || period === "yesterday"
+    set({
+      selectedPeriod: period,
+      dateRange: { start, end },
+      ...(isSingleDay && { groupBy: "day" }),
+    })
   },
 
   setPeriod: (period) => {
     const { start, end } = get().getDateRangeForPeriod(period)
-    set({ selectedPeriod: period, dateRange: { start, end } })
+    const isSingleDay = period === "today" || period === "yesterday"
+    set({
+      selectedPeriod: period,
+      dateRange: { start, end },
+      ...(isSingleDay && { groupBy: "day" }),
+    })
     get().fetchChartData()
   },
 

@@ -16,8 +16,9 @@ const Charts = () => {
   useEffect(() => {
     if (activeTab === "simple") {
       setPeriodWithoutFetch("today")
+      fetchChartData()
     }
-  }, [activeTab, setPeriodWithoutFetch])
+  }, [activeTab, setPeriodWithoutFetch, fetchChartData])
 
   useEffect(() => {
     if (activeTab === "avanzado") {
