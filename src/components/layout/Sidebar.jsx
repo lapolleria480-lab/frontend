@@ -11,6 +11,7 @@ import {
   CurrencyDollarIcon,
   CubeIcon,
   ChartBarIcon,
+  PresentationChartLineIcon,
   Cog6ToothIcon,
   UsersIcon,
   BuildingStorefrontIcon,
@@ -28,6 +29,7 @@ const navigation = [
   { name: "Clientes", href: "/clientes", icon: UsersIcon },
   { name: "Categorías", href: "/categorias", icon: TagIcon },
   { name: "Reportes", href: "/reportes", icon: ChartBarIcon },
+  { name: "Gráficos", href: "/graficos", icon: PresentationChartLineIcon },
   // Rutas solo para admin
   { name: "Configuración", href: "/configuracion", icon: Cog6ToothIcon, adminOnly: true },
 ]

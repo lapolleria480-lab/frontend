@@ -14,6 +14,7 @@ import Cash from "@/pages/Cash"
 import Customers from "@/pages/Customers"
 import Suppliers from "@/pages/Suppliers"
 import Reports from "@/pages/Reports"
+import Charts from "@/pages/Charts"
 import Configuration from "@/pages/Configuration"
 import ProtectedRoute from "@/lib/ProtectedRoute"
 import { ToastProvider } from "@/contexts/ToastContext"
@@ -123,7 +124,8 @@ const AppRoutes = () => {
         <Route path="clientes" element={<Customers />} />
         <Route path="proveedores" element={<Suppliers />} />
         <Route path="reportes" element={<Reports />} />
-        
+        <Route path="graficos" element={<Charts />} />
+
         {/* Rutas que requieren permisos de administrador */}
         <Route
           path="configuracion"
