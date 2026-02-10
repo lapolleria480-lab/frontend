@@ -75,6 +75,7 @@ const SimpleChartsView = () => {
   }
 
   const periods = [
+    { value: "today", label: "Hoy (1 día)" },
     { value: "last7days", label: "Últimos 7 días" },
     { value: "last30days", label: "Últimos 30 días" },
     { value: "thisMonth", label: "Este mes" },

@@ -46,12 +46,9 @@ export const useChartsStore = create((set, get) => ({
     if (productId) get().fetchChartData()
   },
 
-  setPeriod: (period) => {
-    set({ selectedPeriod: period })
-
+  getDateRangeForPeriod: (period) => {
     const today = new Date()
     let start, end
-
     switch (period) {
       case "today":
         start = end = format(today, "yyyy-MM-dd")
@@ -87,8 +84,18 @@ export const useChartsStore = create((set, get) => ({
         start = format(subDays(today, 30), "yyyy-MM-dd")
         end = format(today, "yyyy-MM-dd")
     }
+    return { start, end }
+  },
 
-    set({ dateRange: { start, end } })
+  /** Actualiza período y fechas sin disparar fetch (para default "Hoy" en tab Simple). */
+  setPeriodWithoutFetch: (period) => {
+    const { start, end } = get().getDateRangeForPeriod(period)
+    set({ selectedPeriod: period, dateRange: { start, end } })
+  },
+
+  setPeriod: (period) => {
+    const { start, end } = get().getDateRangeForPeriod(period)
+    set({ selectedPeriod: period, dateRange: { start, end } })
     get().fetchChartData()
   },
 
