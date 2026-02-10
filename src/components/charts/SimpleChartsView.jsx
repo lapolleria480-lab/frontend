@@ -27,6 +27,7 @@ const SimpleChartsView = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [showDropdown, setShowDropdown] = useState(false)
   const dropdownRef = useRef(null)
+  const didInitialFetchForNoProduct = useRef(false)
 
   const selectedProduct = products.find((p) => p.id === selectedProductIds[0])
 
@@ -35,7 +36,12 @@ const SimpleChartsView = () => {
   }, [loadProducts])
 
   useEffect(() => {
-    if (!selectedProductIds.length) fetchChartData()
+    if (selectedProductIds.length > 0) return
+    if (didInitialFetchForNoProduct.current) {
+      fetchChartData()
+    } else {
+      didInitialFetchForNoProduct.current = true
+    }
   }, [selectedProductIds.length, fetchChartData])
 
   useEffect(() => {

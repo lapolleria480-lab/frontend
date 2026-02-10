@@ -98,6 +98,20 @@ export const useChartsStore = create((set, get) => ({
     })
   },
 
+  /**
+   * Inicializa el tab Simple con "Hoy" y hace el fetch en la misma ejecución.
+   * Garantiza que el fetch use siempre el rango del día actual (evita condiciones de carrera).
+   */
+  initSimpleTabAndFetch: () => {
+    const { start, end } = get().getDateRangeForPeriod("today")
+    set({
+      selectedPeriod: "today",
+      dateRange: { start, end },
+      groupBy: "day",
+    })
+    get().fetchChartData()
+  },
+
   setPeriod: (period) => {
     const { start, end } = get().getDateRangeForPeriod(period)
     const isSingleDay = period === "today" || period === "yesterday"

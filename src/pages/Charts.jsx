@@ -11,14 +11,13 @@ import clsx from "clsx"
 
 const Charts = () => {
   const [activeTab, setActiveTab] = useState("simple")
-  const { loading, error, fetchChartData, clearError, setPeriodWithoutFetch } = useChartsStore()
+  const { loading, error, fetchChartData, clearError, initSimpleTabAndFetch } = useChartsStore()
 
   useEffect(() => {
     if (activeTab === "simple") {
-      setPeriodWithoutFetch("today")
-      fetchChartData()
+      initSimpleTabAndFetch()
     }
-  }, [activeTab, setPeriodWithoutFetch, fetchChartData])
+  }, [activeTab, initSimpleTabAndFetch])
 
   useEffect(() => {
     if (activeTab === "avanzado") {
